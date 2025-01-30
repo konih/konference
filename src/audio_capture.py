@@ -1,15 +1,17 @@
-import pyaudio  # type: ignore
-import wave
+import pyaudio
 from typing import Generator, Optional
+
 
 class AudioCapture:
     """Handles audio capture from the system's microphone."""
-    
-    def __init__(self, 
-                 format: int = pyaudio.paFloat32,
-                 channels: int = 1,
-                 rate: int = 16000,
-                 chunk: int = 1024):
+
+    def __init__(
+        self,
+        format: int = pyaudio.paFloat32,
+        channels: int = 1,
+        rate: int = 16000,
+        chunk: int = 1024,
+    ):
         self.format = format
         self.channels = channels
         self.rate = rate
@@ -26,7 +28,7 @@ class AudioCapture:
             channels=self.channels,
             rate=self.rate,
             input=True,
-            frames_per_buffer=self.chunk
+            frames_per_buffer=self.chunk,
         )
 
         try:
@@ -41,4 +43,4 @@ class AudioCapture:
         if self.stream:
             self.stream.stop_stream()
             self.stream.close()
-        self.audio.terminate() 
+        self.audio.terminate()

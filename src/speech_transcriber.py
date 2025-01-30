@@ -1,22 +1,22 @@
-import azure.cognitiveservices.speech as speechsdk  # type: ignore
+import azure.cognitiveservices.speech as speechsdk
 import os
-from typing import Generator, Optional
+from typing import Generator
 from dotenv import load_dotenv
+
 
 class SpeechTranscriber:
     """Handles speech-to-text transcription using Azure Cognitive Services."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         load_dotenv()
-        
+
         self.speech_config = speechsdk.SpeechConfig(
-            subscription=os.getenv('AZURE_SPEECH_KEY'),
-            region=os.getenv('AZURE_SPEECH_REGION')
+            subscription=os.getenv("AZURE_SPEECH_KEY"),
+            region=os.getenv("AZURE_SPEECH_REGION"),
         )
         self.audio_config = speechsdk.audio.AudioConfig(use_default_microphone=True)
         self.speech_recognizer = speechsdk.SpeechRecognizer(
-            speech_config=self.speech_config,
-            audio_config=self.audio_config
+            speech_config=self.speech_config, audio_config=self.audio_config
         )
 
     def start_transcription(self) -> Generator[str, None, None]:
@@ -26,7 +26,7 @@ class SpeechTranscriber:
         done = False
         text_queue = []
 
-        def handle_result(evt):
+        def handle_result(evt: speechsdk.SpeechRecognitionEventArgs) -> None:
             nonlocal done
             if evt.result.reason == speechsdk.ResultReason.RecognizedSpeech:
                 text_queue.append(evt.result.text)
@@ -49,4 +49,4 @@ class SpeechTranscriber:
 
     def stop_transcription(self) -> None:
         """Stops the speech recognition process."""
-        self.speech_recognizer.stop_continuous_recognition() 
+        self.speech_recognizer.stop_continuous_recognition()

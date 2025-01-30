@@ -17,6 +17,7 @@ repos:
       - id: check-yaml
       - id: pretty-format-json
         args: [--autofix]
+        exclude: ^.vscode.*\.json$
       - id: sort-simple-yaml
 
       # Git style
