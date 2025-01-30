@@ -108,9 +108,16 @@ tasks:
     aliases: [t]
 
   test-coverage:
-    desc: Run unit tests with coverage report
+    desc: Run unit tests with coverage report and enforce minimum coverage
     cmds:
-      - '{{.VENV_ACTIVATE}} pytest tests/ --cov=src --cov-report=term-missing -v'
+      - '{{.VENV_ACTIVATE}} pip install pytest-cov'
+      - |
+        {{.VENV_ACTIVATE}} pytest tests/ \
+          --cov=src \
+          --cov-report=term-missing \
+          --cov-report=html:coverage_html \
+          --cov-fail-under=80 \
+          -v
     aliases: [tc]
 
   clean:
@@ -121,8 +128,9 @@ tasks:
       - rm -rf .pytest_cache
       - rm -f .python-version
       - rm -rf .coverage
-      - rm -f meetings/*.md
-      - rm -f screenshots/*.png
+      - rm -rf logs/*
+      - rm -rf meetings/*
+      - rm -rf screenshots/*
     aliases: [c]
 
   install-system-deps:
@@ -183,6 +191,13 @@ tasks:
     cmds:
       - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile requirements.in"'
       - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile requirements-dev.in"'
+    aliases: [cd]
+
+  install-deps:
+    desc: Install dependencies
+    cmds:
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip install -r requirements.txt"'
+    aliases: [id]
 
   lint:
     desc: Run ruff linter
@@ -196,11 +211,10 @@ tasks:
       - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && ruff check . --fix"'
     aliases: [lf]
 
-  typecheck:
+  mypy:
     desc: Run mypy type checker
     cmds:
       - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && mypy ."'
-    aliases: [tc]
 
   build-backend:
     desc: Build backend Docker image with multi-architecture support

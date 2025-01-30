@@ -1,28 +1,33 @@
-from pathlib import Path
-from typing import Any, Dict, TypedDict, cast, Literal
+from typing import Dict, TypedDict, cast, Literal
 import yaml  # We don't need the type ignore comment anymore since we configured it in mypy.ini
 import os
+
 
 class AzureConfig(TypedDict):
     speech_key: str
     speech_region: str
+
 
 class TranscriptionConfig(TypedDict):
     output_format: str
     language: str
     enable_timestamps: bool
 
+
 class PathsConfig(TypedDict):
     logs: str
     meetings: str
     screenshots: str
+
 
 class AppConfig(TypedDict):
     paths: PathsConfig
     azure: AzureConfig
     transcription: TranscriptionConfig
 
+
 PathName = Literal["logs", "meetings", "screenshots"]
+
 
 class Config:
     """Configuration manager for the application."""
@@ -52,15 +57,21 @@ class Config:
         """Get path from configuration."""
         if name not in self.config["paths"]:
             raise KeyError(f"Path not found in config: {name}")
-        return self.config["paths"][name]  # Removed redundant cast since we know it's a str from PathsConfig
+        return self.config["paths"][
+            name
+        ]  # Removed redundant cast since we know it's a str from PathsConfig
 
     def get_azure_credentials(self) -> Dict[str, str]:
         """Get Azure credentials, with environment variables taking precedence."""
         return {
-            "speech_key": os.getenv("AZURE_SPEECH_KEY", self.config["azure"]["speech_key"]),
-            "speech_region": os.getenv("AZURE_SPEECH_REGION", self.config["azure"]["speech_region"]),
+            "speech_key": os.getenv(
+                "AZURE_SPEECH_KEY", self.config["azure"]["speech_key"]
+            ),
+            "speech_region": os.getenv(
+                "AZURE_SPEECH_REGION", self.config["azure"]["speech_region"]
+            ),
         }
 
     def get_transcription_settings(self) -> TranscriptionConfig:
         """Get transcription settings."""
-        return cast(TranscriptionConfig, self.config["transcription"]) 
+        return cast(TranscriptionConfig, self.config["transcription"])
