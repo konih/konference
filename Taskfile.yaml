@@ -1,0 +1,225 @@
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  ACR_NAME: acrp7s1chatbotdevswcbasew6zh
+  ACR_URL: acrp7s1chatbotdevswcbasew6zh.azurecr.io
+  VENV_NAME: .venv
+  PYTHON_CMD: python3
+  VENV_ACTIVATE: . .venv/bin/activate &&
+  PYTHON_VERSION: '3.12'
+  PROJECT_NAME: meeting-minutes-transcriber
+
+tasks:
+  default:
+    desc: Show the list of tasks
+    cmds:
+      - task --list
+
+  run-konference:
+    desc: Run konference
+    cmds:
+      - '{{.VENV_ACTIVATE}} python3 src/main.py'
+    aliases: [rk]
+
+  pyenv-setup:
+    desc: Install Python version using pyenv (if available)
+    cmds:
+      - |
+        if command -v pyenv >/dev/null 2>&1; then
+          pyenv install {{.PYTHON_VERSION}} -s
+          pyenv local {{.PYTHON_VERSION}}
+        else
+          echo "pyenv not found, skipping Python version setup"
+        fi
+    aliases: [ps]
+
+  setup:
+    desc: Create virtual environment and install dependencies
+    deps: [pyenv-setup]
+    cmds:
+      - 'rm -rf {{.VENV_NAME}}'
+      - '{{.PYTHON_CMD}} -m venv {{.VENV_NAME}}'
+      - '{{.VENV_ACTIVATE}} pip install --upgrade pip'
+      - |
+        if [ "$(uname)" == "Darwin" ]; then
+          LDFLAGS="-L/opt/homebrew/lib" CFLAGS="-I/opt/homebrew/include" CPPFLAGS="-I/opt/homebrew/include" {{.VENV_ACTIVATE}} pip install -r requirements.txt
+        else
+          {{.VENV_ACTIVATE}} pip install -r requirements.txt
+        fi
+    aliases: [s]
+
+  setup-env:
+    desc: Create .env file from example if it doesn't exist
+    cmds:
+      - |
+        if [ ! -f .env ]; then
+          cp .env.example .env
+          echo "Created .env file. Please update it with your Azure credentials."
+        else
+          echo ".env file already exists"
+        fi
+    aliases: [se]
+
+  verify-azure:
+    desc: Verify Azure Speech credentials
+    cmds:
+      - |
+        {{.VENV_ACTIVATE}} python3 -c "
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+
+        required = ['AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION']
+        missing = [k for k in required if not os.getenv(k)]
+
+        if missing:
+            print(f'Error: Missing required environment variables: {", ".join(missing)}')
+            exit(1)
+        else:
+            print('Azure credentials verified successfully')
+        "
+    aliases: [va]
+
+  start-meeting:
+    desc: Start a new meeting transcription session
+    deps: [verify-azure]
+    cmds:
+      - '{{.VENV_ACTIVATE}} python3 src/main.py start'
+    aliases: [sm]
+
+  end-meeting:
+    desc: End the current meeting and generate summary
+    cmds:
+      - '{{.VENV_ACTIVATE}} python3 src/main.py end'
+    aliases: [em]
+
+  screenshot:
+    desc: Take a screenshot during the meeting
+    cmds:
+      - '{{.VENV_ACTIVATE}} python3 src/main.py screenshot'
+    aliases: [ss]
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - '{{.VENV_ACTIVATE}} python -m pytest tests/ -v'
+    aliases: [t]
+
+  test-coverage:
+    desc: Run unit tests with coverage report
+    cmds:
+      - '{{.VENV_ACTIVATE}} pytest tests/ --cov=src --cov-report=term-missing -v'
+    aliases: [tc]
+
+  clean:
+    desc: Remove virtual environment, cached files, and generated files
+    cmds:
+      - rm -rf {{.VENV_NAME}}
+      - rm -rf __pycache__
+      - rm -rf .pytest_cache
+      - rm -f .python-version
+      - rm -rf .coverage
+      - rm -f meetings/*.md
+      - rm -f screenshots/*.png
+    aliases: [c]
+
+  install-system-deps:
+    desc: Install required system dependencies
+    cmds:
+      - |
+        if [ "$(uname)" == "Darwin" ]; then
+          brew install portaudio
+          export LDFLAGS="-L/opt/homebrew/lib"
+          export CFLAGS="-I/opt/homebrew/include"
+          export CPPFLAGS="-I/opt/homebrew/include"
+        elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+          sudo apt-get update
+          sudo apt-get install -y python3-pyaudio portaudio19-dev scrot
+        else
+          echo "Unsupported operating system"
+          exit 1
+        fi
+    aliases: [isd]
+
+  full-setup:
+    desc: Complete setup including system dependencies and environment
+    cmds:
+      - task: install-system-deps
+      - task: setup
+      - task: setup-env
+      - task: verify-azure
+    aliases: [fs]
+
+  login-acr:
+    desc: Login to Azure Container Registry
+    cmds:
+      - az acr login --name {{.ACR_NAME}}
+    aliases: [lacr]
+
+  run-backend:
+    desc: Run FastAPI backend with hot reload
+    cmds:
+      - |
+        {{.VENV_ACTIVATE}} uvicorn src.app:app --reload \
+          --host 0.0.0.0 \
+          --port ${PORT:-8000} \
+          --workers ${WORKERS:-1}
+    aliases: [rb]
+    env:
+      PORT: 8000
+      WORKERS: 1
+
+  update-deps:
+    desc: Update all dependencies to their latest compatible versions
+    cmds:
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile --upgrade requirements.in"'
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile --upgrade requirements-dev.in"'
+    aliases: [ud]
+
+  compile-deps:
+    desc: Compile dependencies without upgrading
+    cmds:
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile requirements.in"'
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile requirements-dev.in"'
+
+  lint:
+    desc: Run ruff linter
+    cmds:
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && ruff check ."'
+    aliases: [l]
+
+  lint-fix:
+    desc: Run ruff linter with auto-fix
+    cmds:
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && ruff check . --fix"'
+    aliases: [lf]
+
+  typecheck:
+    desc: Run mypy type checker
+    cmds:
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && mypy ."'
+    aliases: [tc]
+
+  build-backend:
+    desc: Build backend Docker image with multi-architecture support
+    cmds:
+      - docker buildx build --platform linux/amd64,linux/arm64 -t {{.ACR_URL}}/p7s1-chatbot-backend:{{.TAG}} -f src/backend/Dockerfile ./src/backend --load
+    aliases: [bb]
+    vars:
+      TAG:
+        sh: echo "{{.TAG}}"
+    requires:
+      vars:
+        - TAG
+
+  push-backend:
+    deps: [login-acr]
+    desc: Push backend Docker image to Azure Container Registry
+    cmds:
+      - docker push {{.ACR_URL}}/p7s1-chatbot-backend:{{.TAG}}
+    aliases: [pb]
+    vars:
+      TAG:
+        sh: echo "{{.TAG}}"
