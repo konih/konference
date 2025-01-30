@@ -1,0 +1,86 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.19.3
+    hooks:
+      - id: gitleaks
+
+  # - repo: https://github.com/floatingpurr/sync_with_poetry
+  #   rev: "1.2.0" # the revision or tag to clone at
+  #   hooks:
+  #   - id: sync_with_poetry
+  #     args: [] # optional args
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Yaml and Json
+      - id: check-yaml
+      - id: pretty-format-json
+        args: [--autofix]
+      - id: sort-simple-yaml
+
+      # Git style
+      - id: check-added-large-files
+        exclude: "^.*\\.png$|^.*\\.jpg$" # Exclude screenshots
+      - id: check-merge-conflict
+      - id: check-vcs-permalinks
+      - id: forbid-new-submodules
+
+      # Common errors
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-executables-have-shebangs
+      - id: check-builtin-literals
+
+      # Cross platform
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: detect-private-key
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []
+
+  # - repo: https://github.com/bridgecrewio/checkov.git
+  #   rev: '3.2.256'
+  #   hooks:
+  #     - id: checkov
+  #       args:
+  #       - --config-file=.checkov.yaml
+  #       - --quiet
+
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.23
+    hooks:
+      - id: shellcheck
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 'v0.7.1'
+    hooks:
+      - id: ruff
+        types_or: [python, pyi]
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args: [--config-file=mypy.ini]
+        exclude: ^.*tests.*
+
+  # poetry pre-commit
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: task test
+        language: system
+        pass_filenames: false
+        types: [python]

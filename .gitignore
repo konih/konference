@@ -1,0 +1,117 @@
+# Python-related
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.Python
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.coverage
+.coverage.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache
+.pytype/
+cython_debug/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+**/*.tfplan.json
+**/*.tfvars
+**/*.tfvars.json
+
+.azurite/
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+**/.venv
+**/.myvenv
+**/myvenv
+
+# Build and Distribution
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+dist/
+var/
+wheels/
+share/python-wheels/
+
+# Azure Functions
+# local.settings.json
+.azure
+__blobstorage__/
+__queuestorage__/
+
+.python_packages/
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+**/*.tfplan
+**/*.tfplan.json
+.terraformrc
+terraform.rc
+.terragrunt-cache
+**saterraform.json
+
+# IDE - JetBrains
+.idea/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/aws.xml
+.idea/**/contentModel.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+.idea/**/mongoSettings.xml
+.idea/replstate.xml
+.idea/sonarlint/
+*.iws
+out/
+
+# Documentation
+docs/adrs/*
+
+# Logs and temporary files
+pip-log.txt
+pip-delete-this-directory.txt
+crash.log
+crash.*.log
+
+# MacOS
+.DS_Store
+
+# Misc
+stuff
+**/stuff
+env.sh
+google_cloud_*
+netcool-proxy.zip

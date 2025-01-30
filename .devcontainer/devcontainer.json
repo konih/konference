@@ -1,0 +1,35 @@
+{
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "ms-python.mypy-type-checker",
+        "ms-azuretools.vscode-azurefunctions",
+        "redhat.vscode-yaml",
+        "streetsidesoftware.code-spell-checker",
+        "njpwerner.autodocstring",
+        "kevinrose.vsc-python-indent",
+        "visualstudioexptteam.vscodeintellicode",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": "${localWorkspaceFolder}/.vscode/settings.json"
+    }
+  },
+  "dockerComposeFile": "docker-compose.yml",
+  "features": {},
+  "forwardPorts": [
+    7071,
+    10000,
+    10001,
+    10002
+  ],
+  "name": "dev-container-knowledge-base-scrapers",
+  "otherPortsAttributes": {
+    "onAutoForward": "ignore"
+  },
+  "remoteUser": "vscode",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+}
