@@ -74,14 +74,16 @@ repos:
     hooks:
       - id: mypy
         args: [--config-file=mypy.ini]
-        exclude: ^.*tests.*
+        exclude: ^tests/.*$
+        additional_dependencies:
+          - types-PyYAML
 
   # poetry pre-commit
   - repo: local
     hooks:
-      - id: pytest
-        name: pytest
-        entry: task test
+      - id: pytest-check
+        name: pytest-check
+        entry: pytest
         language: system
         pass_filenames: false
-        types: [python]
+        always_run: true

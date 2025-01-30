@@ -3,17 +3,19 @@ from dotenv import load_dotenv
 import os
 from src.speech_transcriber import SpeechTranscriber
 from src.protocol_writer import ProtocolWriter
+from src.config import Config
+from datetime import datetime
 
 
-def validate_azure_credentials() -> None:
+def validate_azure_credentials(config: Config) -> None:
     """Validate that required Azure credentials are present."""
-    required_vars = ["AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION"]
-    missing = [var for var in required_vars if not os.getenv(var)]
+    credentials = config.get_azure_credentials()
+    missing = [k for k, v in credentials.items() if not v]
 
     if missing:
         raise ValueError(
             f"Missing required Azure credentials: {', '.join(missing)}.\n"
-            "Please ensure these are set in your .env file."
+            "Please ensure these are set in your config.yaml file or environment variables."
         )
 
 
@@ -24,8 +26,13 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         "-o",
-        default="meeting_protocol.txt",
-        help="Output file path for the meeting protocol (default: meeting_protocol.txt)",
+        help="Output file path for the meeting protocol (default: auto-generated in meetings directory)",
+    )
+    parser.add_argument(
+        "--config",
+        "-c",
+        default="config.yaml",
+        help="Path to config file (default: config.yaml)",
     )
     return parser.parse_args()
 
@@ -35,13 +42,23 @@ def main() -> int:
     load_dotenv()
 
     try:
-        # Validate Azure credentials before proceeding
-        validate_azure_credentials()
-
         # Parse command line arguments
         args = parse_arguments()
 
-        transcriber = SpeechTranscriber()
+        # Load configuration
+        config = Config(args.config)
+
+        # Validate Azure credentials before proceeding
+        validate_azure_credentials(config)
+
+        # Generate default output path if not specified
+        if not args.output:
+            meetings_dir = config.get_path("meetings")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            extension = config.get_transcription_settings()["output_format"]
+            args.output = os.path.join(meetings_dir, f"meeting_{timestamp}.{extension}")
+
+        transcriber = SpeechTranscriber(config)
         protocol_writer = ProtocolWriter(args.output)
 
         protocol_writer.start_protocol()

@@ -1,15 +1,17 @@
 import azure.cognitiveservices.speech as speechsdk
 import os
-from typing import Generator
+from typing import Generator, Optional
 from dotenv import load_dotenv
+from src.config import Config
 
 
 class SpeechTranscriber:
     """Handles speech-to-text transcription using Azure Cognitive Services."""
 
-    def __init__(self) -> None:
+    def __init__(self, config: Optional[Config] = None):
         load_dotenv()
 
+        self.config = config or Config()
         self.speech_config = speechsdk.SpeechConfig(
             subscription=os.getenv("AZURE_SPEECH_KEY"),
             region=os.getenv("AZURE_SPEECH_REGION"),
