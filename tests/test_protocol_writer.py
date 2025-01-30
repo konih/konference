@@ -3,10 +3,14 @@ from datetime import datetime
 from src.protocol_writer import ProtocolWriter
 import os
 from pathlib import Path
+from typing import Generator
+from pytest import FixtureRequest
 
 
-@pytest.fixture
-def protocol_writer(tmp_path: Path):
+@pytest.fixture(scope="function")  # type: ignore[misc]
+def protocol_writer(
+    request: FixtureRequest, tmp_path: Path
+) -> Generator[ProtocolWriter, None, None]:
     """Create a protocol writer with a temporary file."""
     test_file = tmp_path / "test_protocol.txt"
     writer = ProtocolWriter(str(test_file))
@@ -14,13 +18,13 @@ def protocol_writer(tmp_path: Path):
     # Cleanup happens automatically with tmp_path
 
 
-def test_protocol_writer_creates_file(protocol_writer):
+def test_protocol_writer_creates_file(protocol_writer: ProtocolWriter) -> None:
     """Test file creation."""
     protocol_writer.start_protocol()
     assert os.path.exists(protocol_writer.output_file)
 
 
-def test_protocol_writer_writes_entry(protocol_writer):
+def test_protocol_writer_writes_entry(protocol_writer: ProtocolWriter) -> None:
     """Test writing an entry."""
     test_text = "Test transcription"
     protocol_writer.start_protocol()
@@ -32,7 +36,7 @@ def test_protocol_writer_writes_entry(protocol_writer):
         assert datetime.now().strftime("%Y-%m-%d") in content
 
 
-def test_protocol_writer_close(protocol_writer):
+def test_protocol_writer_close(protocol_writer: ProtocolWriter) -> None:
     """Test closing the protocol."""
     protocol_writer.start_protocol()
     protocol_writer.write_entry("Test entry")
@@ -43,7 +47,7 @@ def test_protocol_writer_close(protocol_writer):
         assert "Protocol ended" in content
 
 
-def test_protocol_writer_multiple_entries(protocol_writer):
+def test_protocol_writer_multiple_entries(protocol_writer: ProtocolWriter) -> None:
     """Test writing multiple entries."""
     entries = ["Entry 1", "Entry 2", "Entry 3"]
     protocol_writer.start_protocol()
@@ -57,10 +61,11 @@ def test_protocol_writer_multiple_entries(protocol_writer):
             assert entry in content
 
 
-def test_protocol_writer_header_format(protocol_writer):
+def test_protocol_writer_header_format(protocol_writer: ProtocolWriter) -> None:
     """Test protocol header format."""
     protocol_writer.start_protocol()
-    protocol_writer.file_handle.flush()  # Ensure content is written to disk
+    if protocol_writer.file_handle is not None:  # Add null check
+        protocol_writer.file_handle.flush()
 
     with open(protocol_writer.output_file, "r", encoding="utf-8") as f:
         content = f.read()

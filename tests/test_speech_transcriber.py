@@ -3,10 +3,12 @@ from src.speech_transcriber import SpeechTranscriber
 from src.config import Config
 from unittest.mock import MagicMock, patch
 import azure.cognitiveservices.speech as speechsdk
+from pytest import FixtureRequest
+from typing import Any, Generator
 
 
-@pytest.fixture
-def mock_config():
+@pytest.fixture(scope="function")  # type: ignore[misc]
+def mock_config(request: FixtureRequest) -> MagicMock:
     config = MagicMock(spec=Config)
     config.get_azure_credentials.return_value = {
         "speech_key": "test_key",
@@ -15,26 +17,28 @@ def mock_config():
     return config
 
 
-@pytest.fixture
-def mock_speech_recognizer():
+@pytest.fixture(scope="function")  # type: ignore[misc]
+def mock_speech_recognizer(request: FixtureRequest) -> Generator[MagicMock, None, None]:
     with patch("azure.cognitiveservices.speech.SpeechRecognizer") as mock:
         mock_instance = MagicMock()
         mock.return_value = mock_instance
         yield mock_instance
 
 
-def test_speech_transcriber_init(mock_config):
+def test_speech_transcriber_init(mock_config: MagicMock) -> None:
     """Test SpeechTranscriber initialization."""
     transcriber = SpeechTranscriber(mock_config)
     assert transcriber.config == mock_config
 
 
-def test_start_transcription(mock_config, mock_speech_recognizer):
+def test_start_transcription(
+    mock_config: MagicMock, mock_speech_recognizer: MagicMock
+) -> None:
     """Test starting transcription."""
     transcriber = SpeechTranscriber(mock_config)
 
     # Simulate recognition events
-    def simulate_recognition(evt_handler):
+    def simulate_recognition(evt_handler: Any) -> None:
         evt = MagicMock()
         evt.result.reason = speechsdk.ResultReason.RecognizedSpeech
         evt.result.text = "Test transcription"
@@ -47,7 +51,9 @@ def test_start_transcription(mock_config, mock_speech_recognizer):
     assert transcription == "Test transcription"
 
 
-def test_stop_transcription(mock_config, mock_speech_recognizer):
+def test_stop_transcription(
+    mock_config: MagicMock, mock_speech_recognizer: MagicMock
+) -> None:
     """Test stopping transcription."""
     transcriber = SpeechTranscriber(mock_config)
     transcriber.stop_transcription()

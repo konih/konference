@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import sys
 
 
-def test_validate_azure_credentials_valid():
+def test_validate_azure_credentials_valid() -> None:
     """Test validation with valid credentials."""
     mock_config = MagicMock(spec=Config)
     mock_config.get_azure_credentials.return_value = {
@@ -17,7 +17,7 @@ def test_validate_azure_credentials_valid():
     validate_azure_credentials(mock_config)
 
 
-def test_validate_azure_credentials_invalid():
+def test_validate_azure_credentials_invalid() -> None:
     """Test validation with missing credentials."""
     mock_config = MagicMock(spec=Config)
     mock_config.get_azure_credentials.return_value = {
@@ -30,7 +30,7 @@ def test_validate_azure_credentials_invalid():
     assert "speech_key" in str(exc.value)
 
 
-def test_parse_arguments_defaults():
+def test_parse_arguments_defaults() -> None:
     """Test argument parsing with defaults."""
     with patch.object(sys, "argv", ["prog"]):
         args = parse_arguments()
@@ -38,7 +38,7 @@ def test_parse_arguments_defaults():
         assert args.config == "config.yaml"
 
 
-def test_parse_arguments_custom():
+def test_parse_arguments_custom() -> None:
     """Test argument parsing with custom values."""
     test_args = [
         "prog",

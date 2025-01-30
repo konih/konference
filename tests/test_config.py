@@ -1,13 +1,14 @@
 import pytest
 from pathlib import Path
 import os
-from src.config import Config
+from src.config import Config, PathName
 import yaml
 import shutil
+from pytest import FixtureRequest
 
 
-@pytest.fixture
-def temp_config_file(tmp_path: Path) -> Path:
+@pytest.fixture(scope="function")  # type: ignore[misc]
+def temp_config_file(request: FixtureRequest, tmp_path: Path) -> Path:
     """Create a temporary config file for testing."""
     config_data = {
         "paths": {
@@ -63,7 +64,8 @@ def test_invalid_path_name(temp_config_file: Path) -> None:
     """Test handling of invalid path name."""
     config = Config(str(temp_config_file))
     with pytest.raises(KeyError):
-        config.get_path("invalid_path")
+        # Use an invalid path name that's not in the PathName Literal type
+        config.get_path("invalid_path")  # type: ignore
 
 
 def test_directory_creation(temp_config_file: Path) -> None:
@@ -71,7 +73,8 @@ def test_directory_creation(temp_config_file: Path) -> None:
     config = Config(str(temp_config_file))
 
     # Get paths and ensure they exist
-    for path_name in ["logs", "meetings", "screenshots"]:
+    paths: list[PathName] = ["logs", "meetings", "screenshots"]
+    for path_name in paths:
         path = config.get_path(path_name)
         assert os.path.exists(path)
 

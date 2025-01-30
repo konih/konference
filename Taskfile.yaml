@@ -20,7 +20,8 @@ tasks:
   run-konference:
     desc: Run konference
     cmds:
-      - '{{.VENV_ACTIVATE}} python3 src/main.py'
+      - |
+        {{.VENV_ACTIVATE}} PYTHONPATH=. python3 src/main.py
     aliases: [rk]
 
   pyenv-setup:
@@ -42,6 +43,7 @@ tasks:
       - 'rm -rf {{.VENV_NAME}}'
       - '{{.PYTHON_CMD}} -m venv {{.VENV_NAME}}'
       - '{{.VENV_ACTIVATE}} pip install --upgrade pip'
+      - '{{.VENV_ACTIVATE}} pip install pip-tools'
       - |
         if [ "$(uname)" == "Darwin" ]; then
           LDFLAGS="-L/opt/homebrew/lib" CFLAGS="-I/opt/homebrew/include" CPPFLAGS="-I/opt/homebrew/include" {{.VENV_ACTIVATE}} pip install -r requirements.txt
@@ -182,15 +184,17 @@ tasks:
   update-deps:
     desc: Update all dependencies to their latest compatible versions
     cmds:
-      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile --upgrade requirements.in"'
-      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile --upgrade requirements-dev.in"'
+      - '{{.VENV_ACTIVATE}} pip-compile --upgrade requirements.in'
+      - '{{.VENV_ACTIVATE}} pip-compile --upgrade requirements-dev.in'
+      - '{{.VENV_ACTIVATE}} pip install -r requirements.txt -r requirements-dev.txt'
     aliases: [ud]
 
   compile-deps:
     desc: Compile dependencies without upgrading
     cmds:
-      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile requirements.in"'
-      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && pip-compile requirements-dev.in"'
+      - '{{.VENV_ACTIVATE}} pip-compile requirements.in'
+      - '{{.VENV_ACTIVATE}} pip-compile requirements-dev.in'
+      - '{{.VENV_ACTIVATE}} pip install -r requirements.txt -r requirements-dev.txt'
     aliases: [cd]
 
   install-deps:
@@ -214,7 +218,7 @@ tasks:
   mypy:
     desc: Run mypy type checker
     cmds:
-      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && mypy ."'
+      - '/bin/bash -c ". {{.VENV_NAME}}/bin/activate && mypy . "'
 
   build-backend:
     desc: Build backend Docker image with multi-architecture support

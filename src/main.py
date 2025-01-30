@@ -5,6 +5,7 @@ from src.speech_transcriber import SpeechTranscriber
 from src.protocol_writer import ProtocolWriter
 from src.config import Config
 from datetime import datetime
+from src.ui.app import TranscriberUI
 
 
 def validate_azure_credentials(config: Config) -> None:
@@ -58,16 +59,19 @@ def main() -> int:
             extension = config.get_transcription_settings()["output_format"]
             args.output = os.path.join(meetings_dir, f"meeting_{timestamp}.{extension}")
 
+        # Initialize components
         transcriber = SpeechTranscriber(config)
         protocol_writer = ProtocolWriter(args.output)
 
-        protocol_writer.start_protocol()
-        print(f"Starting transcription... Output will be saved to: {args.output}")
-        print("Press Ctrl+C to stop")
+        # Create and run the UI
+        app = TranscriberUI()
 
-        for transcribed_text in transcriber.start_transcription():
-            protocol_writer.write_entry(transcribed_text)
-            print(f"Transcribed: {transcribed_text}")
+        def handle_transcript(text: str) -> None:
+            app.add_transcript(text)
+            protocol_writer.write_entry(text)
+
+        # Start the UI
+        app.run()
 
     except ValueError as e:
         print(f"Configuration Error: {str(e)}")

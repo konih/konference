@@ -1,3 +1,5 @@
+textual>=0.52.1
+rich>=13.7.0
 pyyaml
 azure-cognitiveservices-speech
 python-dotenv
