@@ -11,6 +11,7 @@ from src.ui.action_handler import ActionHandler
 from src.speech_transcriber import SpeechTranscriber
 from src.ui.widgets.audio_meter import AudioMeter
 from src.audio_capture import AudioCapture
+import pyaudio
 
 
 class TranscriberUI(App):
@@ -108,11 +109,12 @@ class TranscriberUI(App):
 
     #audio-meter {
         dock: top;
-        height: 4;
+        height: 10;
         width: 100%;
         margin: 0;
-        background: $surface;
+        background: $surface-darken-1;
         border-bottom: solid $primary;
+        padding: 0 1;
     }
     """
 
@@ -177,22 +179,41 @@ class TranscriberUI(App):
     async def start_recording(self) -> None:
         """Start the recording and transcription process."""
         if not self._transcription_task:
+            # Start audio capture
+            self.audio_stream = self.audio_capture.start_stream()
+            # Start processing audio in background
+            asyncio.create_task(self._process_audio())
+            
             self._transcription_task = asyncio.create_task(
                 self._process_transcription()
             )
-            self.logger.logger.info("Started transcription task")
+            self.logger.logger.info("Started transcription and audio capture")
 
     async def stop_recording(self) -> None:
         """Stop the recording and transcription process."""
         if self._transcription_task:
             self.transcriber.stop_transcription()
+            self.audio_capture.stop_stream()
             self._transcription_task.cancel()
             try:
                 await self._transcription_task
             except asyncio.CancelledError:
                 pass
             self._transcription_task = None
-            self.logger.logger.info("Stopped transcription task")
+            self.logger.logger.info("Stopped transcription and audio capture")
+
+    async def _process_audio(self) -> None:
+        """Process audio data in the background."""
+        try:
+            async for audio_data in self.audio_stream:
+                if not self.recording:
+                    break
+                # Process the audio data chunk
+                if self.audio_capture.level_callback:
+                    self.audio_capture.level_callback(audio_data)
+        except Exception as e:
+            self.logger.logger.error(f"Audio processing error: {e}")
+            self.action_handler.toggle_recording()  # Stop recording on error
 
     def on_mount(self) -> None:
         """Set up the application when mounted."""
@@ -204,13 +225,23 @@ class TranscriberUI(App):
             config.get_path("logs"), log_settings["file_logging_enabled"]
         )
 
-        # Set up logger with UI widget
-        self.logger.set_log_widget(self.query_one("#log"))
-        self.logger.logger.info("Application started")
+        # Set up logger with UI widget AFTER the widget is mounted
+        log_widget = self.query_one("#log")
+        self.logger.set_log_widget(log_widget)
 
-        # Set up audio meter callback
+        # Set up audio meter callback with correct format
         meter = self.query_one("#audio-meter", AudioMeter)
-        self.audio_capture.level_callback = meter.update_level
+        self.audio_capture = AudioCapture(
+            format=pyaudio.paFloat32,
+            rate=44100,
+            chunk=1024,
+            level_callback=lambda data: meter.update_level(data, format_width=4),
+            logger=self.logger.logger
+        )
+
+        # Now that everything is set up, we can start logging
+        self.logger.logger.info("Application started")
+        self.logger.logger.info(f"Audio capture initialized with format: {pyaudio.paFloat32}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
