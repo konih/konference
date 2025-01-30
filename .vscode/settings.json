@@ -6,10 +6,13 @@
   // Testing
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.testing.pytestArgs": [
-    "tests"
+    "tests",
+    "-v",
+    "--no-cov"
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
   // Editor settings
   "editor.formatOnSave": true,
   "editor.rulers": [
@@ -65,5 +68,7 @@
   "azureFunctions.projectLanguage": "Python",
   "azureFunctions.projectRuntime": "~4",
   "debug.internalConsoleOptions": "neverOpen",
-  "azureFunctions.projectLanguageModel": 2
+  "azureFunctions.projectLanguageModel": 2,
+  // Environment settings
+  "python.envFile": "${workspaceFolder}/.env"
 }

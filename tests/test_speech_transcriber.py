@@ -7,7 +7,7 @@ from pytest import FixtureRequest
 from typing import Any, Generator
 
 
-@pytest.fixture(scope="function")  # type: ignore[misc]
+@pytest.fixture(scope="function")
 def mock_config(request: FixtureRequest) -> MagicMock:
     config = MagicMock(spec=Config)
     config.get_azure_credentials.return_value = {
@@ -17,7 +17,7 @@ def mock_config(request: FixtureRequest) -> MagicMock:
     return config
 
 
-@pytest.fixture(scope="function")  # type: ignore[misc]
+@pytest.fixture(scope="function")
 def mock_speech_recognizer(request: FixtureRequest) -> Generator[MagicMock, None, None]:
     with patch("azure.cognitiveservices.speech.SpeechRecognizer") as mock:
         mock_instance = MagicMock()
@@ -31,7 +31,8 @@ def test_speech_transcriber_init(mock_config: MagicMock) -> None:
     assert transcriber.config == mock_config
 
 
-def test_start_transcription(
+@pytest.mark.asyncio(loop_scope="function")
+async def test_start_transcription(
     mock_config: MagicMock, mock_speech_recognizer: MagicMock
 ) -> None:
     """Test starting transcription."""
@@ -46,9 +47,10 @@ def test_start_transcription(
 
     mock_speech_recognizer.recognized.connect.side_effect = simulate_recognition
 
-    # Get first transcription
-    transcription = next(transcriber.start_transcription())
-    assert transcription == "Test transcription"
+    # Test async generator
+    async for text in transcriber.start_transcription():
+        assert text == "Test transcription"
+        break  # Only test first transcription
 
 
 def test_stop_transcription(
@@ -56,5 +58,8 @@ def test_stop_transcription(
 ) -> None:
     """Test stopping transcription."""
     transcriber = SpeechTranscriber(mock_config)
+    transcriber._running = True  # Set running state
     transcriber.stop_transcription()
+
+    assert not transcriber._running
     mock_speech_recognizer.stop_continuous_recognition.assert_called_once()

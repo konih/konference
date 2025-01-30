@@ -106,7 +106,8 @@ tasks:
   test:
     desc: Run unit tests
     cmds:
-      - '{{.VENV_ACTIVATE}} python -m pytest tests/ -v'
+      - |
+        {{.VENV_ACTIVATE}} PYTHONPATH=. python -m pytest tests/ -v
     aliases: [t]
 
   test-coverage:

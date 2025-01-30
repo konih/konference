@@ -1,6 +1,5 @@
 {
   "recommendations": [
-    "ms-azuretools.vscode-azurefunctions",
     "ms-python.python",
     "ms-python.vscode-pylance",
     "ms-python.mypy-type-checker",
@@ -8,7 +7,6 @@
     "njpwerner.autodocstring",
     "kevinrose.vsc-python-indent",
     "visualstudioexptteam.vscodeintellicode",
-    "esbenp.prettier-vscode",
-    "ms-azuretools.vscode-docker"
+    "esbenp.prettier-vscode"
   ]
 }

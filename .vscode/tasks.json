@@ -1,27 +1,11 @@
 {
+  "version": "2.0.0",
   "tasks": [
     {
-      "label": "pip install (functions)",
-      "linux": {
-        "command": "${config:azureFunctions.pythonVenv}/bin/python -m pip install -r ${workspaceFolder}/requirements.txt"
-      },
-      "osx": {
-        "command": "${config:azureFunctions.pythonVenv}/bin/python -m pip install -r ${workspaceFolder}/requirements.txt"
-      },
-      "problemMatcher": [],
+      "label": "Install Dependencies",
       "type": "shell",
-      "windows": {
-        "command": "${config:azureFunctions.pythonVenv}/Scripts/python -m pip install -r ${workspaceFolder}/requirements.txt"
-      }
-    },
-    {
-      "command": "host start",
-      "dependsOn": "pip install (functions)",
-      "isBackground": true,
-      "label": "func: host start",
-      "problemMatcher": "$func-python-watch",
-      "type": "func"
+      "command": "${command:python.interpreterPath} -m pip install -r requirements.txt",
+      "problemMatcher": []
     }
-  ],
-  "version": "2.0.0"
+  ]
 }

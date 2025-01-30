@@ -4,3 +4,5 @@ pyyaml
 azure-cognitiveservices-speech
 python-dotenv
 pyaudio
+numpy
+plotext>=5.2.8

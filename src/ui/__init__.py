@@ -1,1 +1,1 @@
-"""UI package for the meeting minutes transcriber."""
+"""UI package for the transcriber application."""

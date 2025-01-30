@@ -1,26 +1,16 @@
 {
+  "version": "0.2.0",
   "configurations": [
     {
-      "console": "integratedTerminal",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/${config:azureFunctions.deploySubpath}"
-      },
-      "justMyCode": false,
-      "name": "Current File (Integrated Terminal)",
-      "program": "${file}",
+      "name": "Python: Current File",
+      "type": "debugpy",
       "request": "launch",
-      "type": "debugpy"
-    },
-    {
-      "connect": {
-        "host": "localhost",
-        "port": 9091
-      },
-      "name": "Attach to Python Functions",
-      "preLaunchTask": "func: host start",
-      "request": "attach",
-      "type": "debugpy"
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
     }
-  ],
-  "version": "0.2.0"
+  ]
 }

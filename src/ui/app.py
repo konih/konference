@@ -2,10 +2,15 @@ from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal
 from textual.widgets import Header, Footer, Button, Log, Label
 from textual.binding import Binding
-from rich.text import Text
 from datetime import datetime
 import asyncio
 from typing import Optional
+from src.logger import AppLogger
+from src.config import Config
+from src.ui.action_handler import ActionHandler
+from src.speech_transcriber import SpeechTranscriber
+from src.ui.widgets.audio_meter import AudioMeter
+from src.audio_capture import AudioCapture
 
 
 class TranscriberUI(App):
@@ -40,8 +45,20 @@ class TranscriberUI(App):
     }
 
     #transcript-container {
-        height: 85%;
+        height: 80%;
         margin: 1;
+        layout: grid;
+        grid-size: 1 2;  # One column, two rows
+        grid-rows: 2fr 1fr;  # Transcript takes 2/3, log takes 1/3
+    }
+
+    #log {
+        height: 100%;
+        border: heavy $accent;
+        background: $surface-darken-1;
+        margin: 1;
+        padding: 1;
+        overflow-y: scroll;
     }
 
     .action-button {
@@ -88,6 +105,15 @@ class TranscriberUI(App):
         text-align: left;
         padding-left: 2;
     }
+
+    #audio-meter {
+        dock: top;
+        height: 4;
+        width: 100%;
+        margin: 0;
+        background: $surface;
+        border-bottom: solid $primary;
+    }
     """
 
     BINDINGS = [
@@ -101,10 +127,16 @@ class TranscriberUI(App):
         super().__init__()
         self.recording = False
         self.start_time: Optional[datetime] = None
+        self.logger = AppLogger()
+        self.action_handler = ActionHandler(self)
+        self.transcriber = SpeechTranscriber()
+        self._transcription_task: Optional[asyncio.Task] = None
+        self.audio_capture = AudioCapture()
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header()
+        yield AudioMeter(id="audio-meter")
 
         with Horizontal():
             # Sidebar with action buttons
@@ -113,6 +145,7 @@ class TranscriberUI(App):
                 yield Button("📸 Screenshot", id="screenshot", classes="action-button")
                 yield Button("⚙️ Settings", id="settings", classes="action-button")
                 yield Button("📝 Summarize", id="summarize", classes="action-button")
+                yield Button("🔍 Log Level", id="loglevel", classes="action-button")
 
             # Main content area
             with Container(id="content"):
@@ -124,33 +157,87 @@ class TranscriberUI(App):
                 # Transcript area
                 with Container(id="transcript-container"):
                     yield Log(id="transcript", highlight=True)
+                    yield Log(id="log", highlight=True)  # Add a separate log widget
 
         yield Footer()
 
-    def on_mount(self) -> None:
-        """Bind button actions when the app starts."""
-        self.query_one("#toggle").action_press = self.action_toggle_recording
-        self.query_one("#screenshot").action_press = self.action_screenshot
-        self.query_one("#settings").action_press = self.action_settings
-        self.query_one("#summarize").action_press = self.action_summarize
+    async def _process_transcription(self) -> None:
+        """Process transcription in the background."""
+        try:
+            async for text in self.transcriber.start_transcription():
+                self.add_transcript(text)
+        except Exception as e:
+            self.logger.logger.error(f"Transcription error: {e}")
+            self.action_handler.toggle_recording()  # Stop recording on error
 
     def action_toggle_recording(self) -> None:
         """Toggle recording state."""
-        self.recording = not self.recording
-        toggle_btn = self.query_one("#toggle")
-        status = self.query_one("#status")
+        self.action_handler.toggle_recording()
 
-        if self.recording:
-            self.start_time = datetime.now()
-            toggle_btn.label = "🛑 Stop"
-            toggle_btn.classes = "action-button -recording"
-            status.update(Text("🔴 Recording...", style="bold red"))
-            asyncio.create_task(self._start_timer())  # Create task for the coroutine
-        else:
-            toggle_btn.label = "🎙 Start"
-            toggle_btn.classes = "action-button"
-            status.update("Ready")
-            self._stop_timer()
+    async def start_recording(self) -> None:
+        """Start the recording and transcription process."""
+        if not self._transcription_task:
+            self._transcription_task = asyncio.create_task(
+                self._process_transcription()
+            )
+            self.logger.logger.info("Started transcription task")
+
+    async def stop_recording(self) -> None:
+        """Stop the recording and transcription process."""
+        if self._transcription_task:
+            self.transcriber.stop_transcription()
+            self._transcription_task.cancel()
+            try:
+                await self._transcription_task
+            except asyncio.CancelledError:
+                pass
+            self._transcription_task = None
+            self.logger.logger.info("Stopped transcription task")
+
+    def on_mount(self) -> None:
+        """Set up the application when mounted."""
+        # Initial logging setup
+        config = Config()
+        log_settings = config.get_logging_settings()
+        self.logger.set_level(log_settings["level"])
+        self.logger.setup_file_logging(
+            config.get_path("logs"), log_settings["file_logging_enabled"]
+        )
+
+        # Set up logger with UI widget
+        self.logger.set_log_widget(self.query_one("#log"))
+        self.logger.logger.info("Application started")
+
+        # Set up audio meter callback
+        meter = self.query_one("#audio-meter", AudioMeter)
+        self.audio_capture.level_callback = meter.update_level
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press events."""
+        button_id = event.button.id
+        if button_id == "toggle":
+            self.action_handler.toggle_recording()
+        elif button_id == "screenshot":
+            self.action_handler.take_screenshot()
+        elif button_id == "settings":
+            self.action_handler.open_settings()
+        elif button_id == "summarize":
+            self.action_handler.summarize()
+        elif button_id == "loglevel":
+            self.action_handler.toggle_log_level()
+
+    def action_quit(self) -> None:
+        """Quit the application."""
+        self.logger.logger.info("Application shutting down")
+        self.exit()
+
+    def add_transcript(self, text: str) -> None:
+        """Add a new transcription to the log."""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        transcript = self.query_one("#transcript", Log)
+        transcript.write(f"[{timestamp}] {text}")
+        transcript.scroll_end()
+        self.logger.logger.debug(f"New transcript: {text}")
 
     async def _start_timer(self) -> None:
         """Start the recording timer."""
@@ -164,26 +251,3 @@ class TranscriberUI(App):
     def _stop_timer(self) -> None:
         """Stop the recording timer."""
         self.query_one("#timer").update("00:00:00")
-
-    def action_screenshot(self) -> None:
-        """Take a screenshot of the current transcript."""
-        self.notify("Screenshot saved!", title="📸 Screenshot")
-
-    def action_settings(self) -> None:
-        """Open settings dialog."""
-        self.notify("Settings dialog coming soon!", title="⚙️ Settings")
-
-    def action_summarize(self) -> None:
-        """Summarize the meeting transcript."""
-        self.notify("Meeting summary coming soon!", title="📝 Summary")
-
-    def add_transcript(self, text: str) -> None:
-        """Add a new transcription to the log."""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        transcript = self.query_one("#transcript", Log)
-        transcript.write(f"[{timestamp}] {text}")
-        transcript.scroll_end()
-
-    def action_quit(self) -> None:
-        """Quit the application."""
-        self.exit()

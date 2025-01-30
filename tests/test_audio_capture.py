@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from typing import Generator
 
 
-@pytest.fixture(scope="function")  # type: ignore[misc]
+@pytest.fixture(scope="function")
 def mock_pyaudio() -> Generator[MagicMock, None, None]:
     with patch("pyaudio.PyAudio") as mock:
         mock_stream = MagicMock()

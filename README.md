@@ -1,15 +1,21 @@
 # Konference
 
-An automated meeting minutes generator that uses Azure Speech Services to transcribe audio in real-time, capture screenshots, and generate formatted markdown summaries.
+An automated meeting minutes generator that uses Azure Speech Services to transcribe audio in real-time, with a beautiful terminal UI for managing recordings, capturing screenshots, and generating formatted markdown summaries.
 
 ## Features
 
 - 🎤 Real-time audio transcription using Azure Speech Services
+- 🖥️ Beautiful terminal UI with:
+  - Live transcription stream
+  - Recording timer
+  - Status indicators
+  - Quick action buttons
 - 📸 Screenshot capture functionality
 - 📝 Automatic meeting summary generation in Markdown format
 - 🕒 Meeting start/end time tracking
 - 🖼️ Screenshot organization and embedding in summaries
 - 🎯 Background process for continuous transcription
+- ⌨️ Keyboard shortcuts for quick actions
 
 ## Prerequisites
 
@@ -17,6 +23,7 @@ An automated meeting minutes generator that uses Azure Speech Services to transc
 - Azure Speech Services subscription
 - Linux or macOS (Windows support coming soon)
 - Task (taskfile) installed
+- PortAudio (for audio capture)
 
 ## Quick Start
 
@@ -37,82 +44,101 @@ AZURE_SPEECH_KEY=your_key_here
 AZURE_SPEECH_REGION=your_region_here
 ```
 
-4. Start a meeting:
+4. Start Konference:
 ```bash
-task start-meeting
+task run-konference
 ```
 
-5. Take screenshots during the meeting:
-```bash
-task screenshot
-```
+## Terminal UI Controls
 
-6. End the meeting and generate summary:
-```bash
-task end-meeting
-```
+### Keyboard Shortcuts
+- `Space`: Start/Stop recording
+- `S`: Take screenshot
+- `M`: Generate meeting summary
+- `Q`: Quit application
 
-## Usage
-
-### Starting a Meeting
-```bash
-task start-meeting
-```
-This will:
-- Start audio transcription in the background
-- Create a new meeting session
-- Begin logging timestamps
-
-### Taking Screenshots
-```bash
-task screenshot
-```
-Captures the current screen and saves it to the meeting record.
-
-### Ending a Meeting
-```bash
-task end-meeting
-```
-This will:
-- Stop the transcription
-- Generate a markdown summary
-- Include all screenshots
-- Save everything to the `meetings/` directory
+### UI Elements
+- Status Bar: Shows recording state and elapsed time
+- Transcript Window: Real-time transcription feed
+- Action Buttons:
+  - 🎙 Start/Stop: Toggle recording
+  - 📸 Screenshot: Capture screen
+  - ⚙️ Settings: Configure application
+  - 📝 Summarize: Generate meeting summary
 
 ## Directory Structure
 
 ```
 meeting-minutes-transcriber/
 ├── src/
-│   ├── audio_capture.py
-│   ├── speech_transcriber.py
-│   ├── screenshot.py
-│   ├── meeting_manager.py
-│   └── main.py
-├── tests/
-├── meetings/
-├── screenshots/
-├── requirements.txt
-└── .env
+│   ├── audio_capture.py      # Audio input handling
+│   ├── speech_transcriber.py # Azure speech integration
+│   ├── protocol_writer.py    # Transcript management
+│   ├── config.py            # Configuration handling
+│   ├── ui/                  # Terminal UI components
+│   │   └── app.py          # Main UI application
+│   └── main.py             # Application entry point
+├── tests/                   # Test suite
+├── meetings/               # Meeting transcripts
+├── screenshots/            # Captured screenshots
+├── requirements.txt        # Production dependencies
+└── requirements-dev.txt    # Development dependencies
 ```
 
 ## Generated Summary Format
 
-The generated meeting summary will include:
+The generated meeting summary includes:
 
 - Meeting date and time
 - Duration
-- Participants (if available)
 - Full transcript with timestamps
 - Screenshots with timestamps
 - Key points (AI-generated)
 - Action items (AI-extracted)
 
+Example:
+```markdown
+# Meeting Summary - 2024-02-15
+
+## Details
+- Start Time: 14:30:00
+- End Time: 15:45:00
+- Duration: 1h 15m
+
+## Transcript
+[14:30:15] Meeting started, discussing Q1 goals
+[14:35:22] Team updates from engineering
+...
+
+## Screenshots
+- [14:40:00] Sprint board review
+- [15:15:30] Architecture diagram discussion
+
+## Key Points
+1. Q1 targets set for all teams
+2. New architecture approved
+...
+```
+
 ## Development
 
+### Setup Development Environment
+```bash
+task setup
+```
+
+### Common Tasks
 - Run tests: `task test`
 - Run linting: `task lint`
+- Type checking: `task mypy`
 - Clean project: `task clean`
+- Update dependencies: `task update-deps`
+
+### Code Style
+- Black formatting
+- Type hints required
+- Docstrings for all public functions
+- Tests required for new features
 
 ## Contributing
 
@@ -129,5 +155,6 @@ MIT
 ## Acknowledgments
 
 - Azure Speech Services
-- Python Speech SDK
+- Textual TUI Framework
+- Rich Text Formatting
 - PyAudio

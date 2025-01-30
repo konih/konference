@@ -20,10 +20,16 @@ class PathsConfig(TypedDict):
     screenshots: str
 
 
+class LoggingConfig(TypedDict):
+    level: str
+    file_logging_enabled: bool
+
+
 class AppConfig(TypedDict):
     paths: PathsConfig
     azure: AzureConfig
     transcription: TranscriptionConfig
+    logging: LoggingConfig
 
 
 PathName = Literal["logs", "meetings", "screenshots"]
@@ -75,3 +81,7 @@ class Config:
     def get_transcription_settings(self) -> TranscriptionConfig:
         """Get transcription settings."""
         return cast(TranscriptionConfig, self.config["transcription"])
+
+    def get_logging_settings(self) -> LoggingConfig:
+        """Get logging settings."""
+        return cast(LoggingConfig, self.config["logging"])

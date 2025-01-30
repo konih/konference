@@ -6,11 +6,16 @@ paths:
 
 # Azure configuration (can be overridden by environment variables)
 azure:
-  speech_key: ""  # Set via AZURE_SPEECH_KEY env var
-  speech_region: ""  # Set via AZURE_SPEECH_REGION env var
+  speech_key: '' # Set via AZURE_SPEECH_KEY env var
+  speech_region: '' # Set via AZURE_SPEECH_REGION env var
 
 # Transcription settings
 transcription:
-  output_format: "md"  # md or txt
-  language: "en-US"
+  output_format: 'md' # md or txt
+  language: 'en-US'
   enable_timestamps: true
+
+# Logging settings
+logging:
+  level: 'DEBUG' # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file_logging_enabled: false

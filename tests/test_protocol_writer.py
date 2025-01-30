@@ -7,7 +7,7 @@ from typing import Generator
 from pytest import FixtureRequest
 
 
-@pytest.fixture(scope="function")  # type: ignore[misc]
+@pytest.fixture(scope="function")
 def protocol_writer(
     request: FixtureRequest, tmp_path: Path
 ) -> Generator[ProtocolWriter, None, None]:

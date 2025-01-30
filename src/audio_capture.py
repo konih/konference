@@ -1,5 +1,5 @@
 import pyaudio
-from typing import Generator, Optional
+from typing import Generator, Optional, Callable
 
 
 class AudioCapture:
@@ -11,6 +11,7 @@ class AudioCapture:
         channels: int = 1,
         rate: int = 16000,
         chunk: int = 1024,
+        level_callback: Optional[Callable[[bytes], None]] = None,
     ):
         self.format = format
         self.channels = channels
@@ -18,6 +19,7 @@ class AudioCapture:
         self.chunk = chunk
         self.audio = pyaudio.PyAudio()
         self.stream: Optional[pyaudio.Stream] = None
+        self.level_callback = level_callback
 
     def start_stream(self) -> Generator[bytes, None, None]:
         """
@@ -34,6 +36,8 @@ class AudioCapture:
         try:
             while True:
                 data = self.stream.read(self.chunk)
+                if self.level_callback:
+                    self.level_callback(data)
                 yield data
         except KeyboardInterrupt:
             self.stop_stream()

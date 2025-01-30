@@ -1,2 +1,5 @@
 types-PyYAML
 pip-tools
+pytest-asyncio
+pytest-cov
+pytest-mock

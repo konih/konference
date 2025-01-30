@@ -22,7 +22,7 @@ cython_debug/
 **/*.tfplan.json
 **/*.tfvars
 **/*.tfvars.json
-
+coverage_html/
 .azurite/
 # Virtual Environments
 .env
