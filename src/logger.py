@@ -32,9 +32,9 @@ class UILogHandler(logging.Handler):
         style = level_styles.get(record.levelno, "white")
         formatted_time = datetime.fromtimestamp(record.created).strftime("%H:%M:%S")
 
-        # Convert the Text object to a string with markup and ensure newline
+        # Use getMessage() to get the formatted message
         log_entry = (
-            f"[{style}]{formatted_time} {record.levelname}: {self.format(record)}[/]\n"
+            f"[{style}]{formatted_time} {record.levelname}: {record.getMessage()}[/]\n"
         )
 
         # Write the string with markup to the log widget
@@ -61,9 +61,10 @@ class AppLogger:
             # Set up basic configuration
             self.logger.setLevel(logging.INFO)
 
-            # Create formatter
+            # Create formatter - only for file handler
+            # UI handler will use its own formatting
             formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-            self.ui_handler.setFormatter(formatter)
+            self.ui_handler.setFormatter(logging.Formatter("%(message)s"))
             self.logger.addHandler(self.ui_handler)
 
     def setup_file_logging(self, log_dir: str, enabled: bool = False) -> None:
