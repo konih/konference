@@ -1,9 +1,8 @@
-from typing import Tuple, List, Any, Optional, cast, AsyncGenerator
+from typing import Tuple, List, Optional, cast, AsyncGenerator
 from unittest.mock import Mock, AsyncMock
 
 import pytest
 import pytest_asyncio
-import pyaudio
 
 from src.ui.app import TranscriberUI
 
@@ -11,20 +10,21 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.meetings]
 
 
 @pytest_asyncio.fixture
-async def mock_app_with_form(mock_app: TranscriberUI) -> AsyncGenerator[TranscriberUI, None]:
+async def mock_app_with_form(
+    mock_app: TranscriberUI,
+) -> AsyncGenerator[TranscriberUI, None]:
     """Extend mock_app with form handling capabilities."""
+
     async def handle_form_result(
-        result: Optional[Tuple[str, List[str], List[str]]]
+        result: Optional[Tuple[str, List[str], List[str]]],
     ) -> None:
         if result is None:
             return
-            
+
         title, participants, tags = result
         if mock_app.meeting_store.current_meeting is None:
             mock_app.meeting_store.create_meeting(
-                title=title,
-                participants=participants,
-                tags=tags
+                title=title, participants=participants, tags=tags
             )
         else:
             current_meeting = mock_app.meeting_store.current_meeting
@@ -41,7 +41,7 @@ async def mock_app_with_form(mock_app: TranscriberUI) -> AsyncGenerator[Transcri
 async def test_meeting_form_workflow(mock_app_with_form: TranscriberUI) -> None:
     """Test the complete meeting form workflow."""
     mock_store = cast(Mock, mock_app_with_form.meeting_store)
-    
+
     # Mock the form submission with AsyncMock
     mock_app_with_form.show_meeting_form = AsyncMock(
         return_value=("Test Meeting", ["Alice"], ["important"])
@@ -76,7 +76,10 @@ async def test_form_result_edit_meeting(mock_app_with_form: TranscriberUI) -> No
 
     # Verify meeting was updated
     assert mock_app_with_form.meeting_store.current_meeting.title == "New Title"
-    assert mock_app_with_form.meeting_store.current_meeting.participants == ["Alice", "Bob"]
+    assert mock_app_with_form.meeting_store.current_meeting.participants == [
+        "Alice",
+        "Bob",
+    ]
     assert mock_app_with_form.meeting_store.current_meeting.tags == ["important"]
     mock_app_with_form.meeting_store.current_meeting.save.assert_called_once()
 

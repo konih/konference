@@ -1,4 +1,5 @@
 from typing import Dict, Any, TypedDict, List
+
 # type: ignore[import]
 from openai.types.chat import ChatCompletionMessageParam
 from src.config import Config

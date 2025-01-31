@@ -282,7 +282,7 @@ class TranscriberUI(App):
                     "chunk": 1024,
                 },
             )
-            
+
             self.audio_capture = AudioCapture(
                 format=audio_config["format"],
                 channels=audio_config["channels"],

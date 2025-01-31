@@ -23,7 +23,7 @@ logging:
 # User settings
 user:
   default_participant: 'Konrad Heimel'
-  create_default_meeting: true
+  create_default_meeting: false
 
 # Audio capture settings
 audio:
