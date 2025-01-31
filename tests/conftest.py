@@ -141,6 +141,14 @@ def mock_components() -> dict[str, Any]:
     mock_store.create_meeting = Mock(return_value=mock_meeting)
     mock_store.add_content = Mock()
 
+    # Add new mocks for language testing
+    mock_transcriber.set_language = Mock()
+    mock_transcriber.speech_config = Mock()
+
+    # Add notify mock
+    mock_notify = Mock()
+    mock_notify.return_value = None  # Ensure notify returns None
+
     return {
         "config": mock_config,
         "logger": mock_logger,
@@ -152,4 +160,5 @@ def mock_components() -> dict[str, Any]:
         "meeting": mock_meeting,
         "store": mock_store,
         "queue": mock_queue,
+        "notify": mock_notify,
     }

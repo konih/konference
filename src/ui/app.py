@@ -18,6 +18,7 @@ import signal
 from rich.text import Text
 from src.ui.widgets.meeting_form import MeetingForm, FormResult
 from textual.widgets import Label as TextualLabel, Log as TextualLog
+from src.state.app_state import AppState, RecordingState, TranscriptionLanguage
 
 
 class Timer(TextualLabel):
@@ -193,6 +194,16 @@ class TranscriberUI(App):
         border: heavy $accent;
         background: $surface;
     }
+
+    .language_button {
+        width: 100%;
+        margin: 1 0;
+        background: $primary-darken-2;
+    }
+
+    .language_button:hover {
+        background: $primary-darken-1;
+    }
     """
 
     BINDINGS = [
@@ -243,6 +254,9 @@ class TranscriberUI(App):
             enabled=audio_config["enabled"],
             logger=self.logger.logger,
         )
+
+        # Add state manager
+        self.state = AppState()
 
     async def on_mount(self) -> None:
         """Handle app startup."""
@@ -328,6 +342,9 @@ class TranscriberUI(App):
                 yield Button("📥 Export Meeting", id="export", classes="action_button")
                 yield Button("📝 Summarize", id="summarize", classes="action_button")
                 yield Button("🔍 Log Level", id="loglevel", classes="action_button")
+
+                # Add language toggle button
+                yield Button("🌍 EN", id="toggle_language", classes="language_button")
 
             # Main content area
             with Container(id="content"):
@@ -576,71 +593,93 @@ class TranscriberUI(App):
 
     async def start_recording(self, meeting_title: Optional[str] = None) -> None:
         """Start the recording and transcription process."""
-        if self.recording:
-            return
-        self.recording = True
-        self.paused = False
-
-        if meeting_title:
-            self.logger.logger.info(f"Starting recording for: {meeting_title}")
-        else:
-            meeting_title = "No Title"
-
         try:
-            self.logger.logger.info("Starting audio processing")
-            await self._start_audio_capture()
-
-            # Start continuous speech recognition
-            self.transcriber.start_transcription()
-
-            # Create and start the transcription consumer task
-            self._transcription_task = asyncio.create_task(
-                self._process_transcription()
+            await self.state.update_state(
+                recording_state=RecordingState.RECORDING,
+                is_processing=True
             )
-            self.logger.logger.debug("Created transcription consumer task")
+            await self._update_language_button()
 
-            # Mark our start time, start the timer UI
-            self.start_time = datetime.now()
-            await self._start_timer()
-            self._update_recording_ui()
-            self.logger.logger.info("Recording started successfully")
+            if self.recording:
+                return
+            self.recording = True
+            self.paused = False
 
-        except Exception as e:
-            self.logger.logger.error(f"Error starting recording: {e}", exc_info=True)
-            # Clean up if something went wrong
-            self.recording = False
-            if self._transcription_task:
-                self._transcription_task.cancel()
-            await self._stop_audio_capture()
-            self._stop_timer()
-            self._update_recording_ui()
+            if meeting_title:
+                self.logger.logger.info(f"Starting recording for: {meeting_title}")
+            else:
+                meeting_title = "No Title"
+
+            try:
+                self.logger.logger.info("Starting audio processing")
+                await self._start_audio_capture()
+
+                # Start continuous speech recognition
+                self.transcriber.start_transcription()
+
+                # Create and start the transcription consumer task
+                self._transcription_task = asyncio.create_task(
+                    self._process_transcription()
+                )
+                self.logger.logger.debug("Created transcription consumer task")
+
+                # Mark our start time, start the timer UI
+                self.start_time = datetime.now()
+                await self._start_timer()
+                self._update_recording_ui()
+                self.logger.logger.info("Recording started successfully")
+
+            except Exception as e:
+                self.logger.logger.error(f"Error starting recording: {e}", exc_info=True)
+                # Clean up if something went wrong
+                self.recording = False
+                if self._transcription_task:
+                    self._transcription_task.cancel()
+                await self._stop_audio_capture()
+                self._stop_timer()
+                self._update_recording_ui()
+                await self.state.update_state(recording_state=RecordingState.STOPPED)
+                raise
+
+        finally:
+            await self.state.update_state(is_processing=False)
+            await self._update_language_button()
 
     async def stop_recording(self) -> None:
         """Stop the current recording."""
-        if not self.recording:
-            return
-        self.recording = False
-        self.logger.logger.info("Stopping transcription")
+        try:
+            await self.state.update_state(
+                recording_state=RecordingState.STOPPED, is_processing=True
+            )
+            await self._update_language_button()
 
-        # Stop recognition in the transcriber
-        await self.transcriber.stop_transcription()
+            if not self.recording:
+                return
+            self.recording = False
+            self.logger.logger.info("Stopping transcription")
 
-        # Stop audio capture
-        await self._stop_audio_capture()
+            # Stop recognition in the transcriber
+            await self.transcriber.stop_transcription()
 
-        # Clean up our transcription consumer task
-        if self._transcription_task:
-            self._transcription_task.cancel()
-            try:
-                await self._transcription_task
-            except asyncio.CancelledError:
-                pass
-            self._transcription_task = None
+            # Stop audio capture
+            await self._stop_audio_capture()
 
-        # Stop the timer, update UI
-        self._stop_timer()
-        self._update_recording_ui()
-        self.logger.logger.info("Recording stopped")
+            # Clean up our transcription consumer task
+            if self._transcription_task:
+                self._transcription_task.cancel()
+                try:
+                    await self._transcription_task
+                except asyncio.CancelledError:
+                    pass
+                self._transcription_task = None
+
+            # Stop the timer, update UI
+            self._stop_timer()
+            self._update_recording_ui()
+            self.logger.logger.info("Recording stopped")
+        finally:
+            await self.state.update_state(is_processing=False)
+            await self._update_language_button()
 
     async def _process_audio(self) -> None:
         """Process audio data in the background."""
@@ -710,6 +749,21 @@ class TranscriberUI(App):
             self.action_handler.summarize()
         elif button_id == "loglevel":
             self.action_handler.toggle_log_level()
+        elif button_id == "toggle_language":
+            new_language = await self.state.toggle_language()
+            if new_language:
+                # Update transcriber's speech config
+                self.transcriber.set_language(new_language)
+                self.notify(
+                    f"Language switched to {new_language.name.title()}",
+                    title="🌍 Language",
+                )
+            await self._update_language_button()
+            return
+
+        # Handle modal buttons
+        if button_id == "meeting-content":
+            await self.show_meeting_form()
 
     def action_quit(self) -> None:
         """Quit the application."""
@@ -798,44 +852,73 @@ class TranscriberUI(App):
 
     async def pause_recording(self) -> None:
         """Pause the current recording."""
-        if not self.recording or self.paused:
-            return
-        self.paused = True
-        self.logger.logger.info("Pausing recording")
+        try:
+            await self.state.update_state(
+                recording_state=RecordingState.PAUSED, is_processing=True
+            )
+            await self._update_language_button()
 
-        # Make sure to await stop_transcription
-        await self.transcriber.stop_transcription()
+            if not self.recording or self.paused:
+                return
+            self.paused = True
+            self.logger.logger.info("Pausing recording")
 
-        if self._transcription_task:
-            self._transcription_task.cancel()
-            try:
-                await self._transcription_task
-            except asyncio.CancelledError:
-                pass
-            self._transcription_task = None
+            await self.transcriber.stop_transcription()
 
-        await self._stop_audio_capture()
-        self._stop_timer()
-        self._update_recording_ui()
-        self.logger.logger.info("Recording paused")
+            if self._transcription_task:
+                self._transcription_task.cancel()
+                try:
+                    await self._transcription_task
+                except asyncio.CancelledError:
+                    pass
+                self._transcription_task = None
+
+            await self._stop_audio_capture()
+            self._stop_timer()
+            self._update_recording_ui()
+            self.logger.logger.info("Recording paused")
+        finally:
+            await self.state.update_state(is_processing=False)
+            await self._update_language_button()
 
     async def resume_recording(self) -> None:
         """Resume the current recording."""
-        if self.recording and self.paused:
-            self.paused = False
-            self.logger.logger.info("Resuming recording")
-
-            await self._start_audio_capture()  # restarts capturing
-            self.transcriber.start_transcription()
-            self._transcription_task = asyncio.create_task(
-                self._process_transcription()
+        try:
+            await self.state.update_state(
+                recording_state=RecordingState.RECORDING,
+                is_processing=True
             )
+            
+            if self.recording and self.paused:
+                self.paused = False
+                self.logger.logger.info("Resuming recording")
 
-            await self._start_timer()
-            self._update_recording_ui()
-            self.logger.logger.info("Recording resumed")
+                await self._start_audio_capture()  # restarts capturing
+                self.transcriber.start_transcription()
+                self._transcription_task = asyncio.create_task(
+                    self._process_transcription()
+                )
+
+                await self._start_timer()
+                self._update_recording_ui()
+                self.logger.logger.info("Recording resumed")
+        finally:
+            await self.state.update_state(is_processing=False)
+            await self._update_language_button()
 
     async def action_new_meeting(self) -> None:
         """Handle new meeting action from key binding."""
         self.logger.logger.debug("New meeting key binding pressed")
         await self.action_handler.new_meeting()
+
+    async def _update_language_button(self) -> None:
+        """Update language button text based on current state."""
+        state = await self.state.get_state()
+        button = self.query_one("#toggle_language", Button)
+
+        # Update button text and state
+        lang_text = (
+            "🌍 EN" if state.language == TranscriptionLanguage.ENGLISH else "🌍 DE"
+        )
+        button.label = lang_text
+        button.disabled = not await self.state.can_toggle_language()

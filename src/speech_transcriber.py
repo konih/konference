@@ -7,6 +7,7 @@ from src.logger import AppLogger
 import asyncio
 import queue
 from queue import Queue
+from src.state.app_state import TranscriptionLanguage
 
 
 class SpeechTranscriber:
@@ -38,6 +39,11 @@ class SpeechTranscriber:
         self._async_queue: asyncio.Queue[str] = asyncio.Queue()
         # Background task for queue transfer
         self._transfer_task: Optional[asyncio.Task] = None
+
+        # Set initial language
+        self.speech_config.speech_recognition_language = (
+            TranscriptionLanguage.ENGLISH.value
+        )
 
     def get_transcript_queue(self) -> asyncio.Queue[str]:
         """Expose the transcript queue to other components."""
@@ -113,3 +119,13 @@ class SpeechTranscriber:
                 pass
 
         self.logger.info("Stopped continuous recognition")
+
+    def set_language(self, language: TranscriptionLanguage) -> None:
+        """Update the speech recognition language."""
+        self.speech_config.speech_recognition_language = language.value
+        self.logger.info(f"Speech recognition language set to: {language.value}")
+
+        # Recreate speech recognizer with new config
+        self.speech_recognizer = speechsdk.SpeechRecognizer(
+            speech_config=self.speech_config, audio_config=self.audio_config
+        )
