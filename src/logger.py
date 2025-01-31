@@ -20,24 +20,12 @@ class UILogHandler(logging.Handler):
         if self.log_widget is None:
             return
 
-        # Create color mapping for different log levels
-        level_styles = {
-            logging.DEBUG: "dim",
-            logging.INFO: "white",
-            logging.WARNING: "yellow",
-            logging.ERROR: "red",
-            logging.CRITICAL: "red bold",
-        }
-
-        style = level_styles.get(record.levelno, "white")
         formatted_time = datetime.fromtimestamp(record.created).strftime("%H:%M:%S")
 
-        # Use getMessage() to get the formatted message
-        log_entry = (
-            f"[{style}]{formatted_time} {record.levelname}: {record.getMessage()}[/]\n"
-        )
+        # Simple format without any styling
+        log_entry = f"{formatted_time} {record.levelname}: {record.getMessage()}\n"
 
-        # Write the string with markup to the log widget
+        # Write to the log widget
         self.log_widget.write(log_entry)
 
 
@@ -61,8 +49,7 @@ class AppLogger:
             # Set up basic configuration
             self.logger.setLevel(logging.INFO)
 
-            # Create formatter - only for file handler
-            # UI handler will use its own formatting
+            # Create formatter
             formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
             self.ui_handler.setFormatter(logging.Formatter("%(message)s"))
             self.logger.addHandler(self.ui_handler)
@@ -85,15 +72,16 @@ class AppLogger:
 
     def set_level(self, level: str) -> None:
         """Set the logging level."""
-        level_map = {
-            "DEBUG": logging.DEBUG,
-            "INFO": logging.INFO,
-            "WARNING": logging.WARNING,
-            "ERROR": logging.ERROR,
-            "CRITICAL": logging.CRITICAL,
-        }
-        numeric_level = level_map.get(level.upper(), logging.INFO)
-        self.logger.setLevel(numeric_level)
+        if isinstance(level, str):  # Add check for string type
+            level_map = {
+                "DEBUG": logging.DEBUG,
+                "INFO": logging.INFO,
+                "WARNING": logging.WARNING,
+                "ERROR": logging.ERROR,
+                "CRITICAL": logging.CRITICAL,
+            }
+            numeric_level = level_map.get(level.upper(), logging.INFO)
+            self.logger.setLevel(numeric_level)
 
     def set_log_widget(self, log_widget: Log) -> None:
         """Set the UI Log widget for logging."""

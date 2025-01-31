@@ -1,10 +1,6 @@
 import argparse
 from dotenv import load_dotenv
-import os
-from src.speech_transcriber import SpeechTranscriber
-from src.protocol_writer import ProtocolWriter
 from src.config import Config
-from datetime import datetime
 from src.ui.app import TranscriberUI
 
 
@@ -52,25 +48,19 @@ def main() -> int:
         # Validate Azure credentials before proceeding
         validate_azure_credentials(config)
 
-        # Generate default output path if not specified
-        if not args.output:
-            meetings_dir = config.get_path("meetings")
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            extension = config.get_transcription_settings()["output_format"]
-            args.output = os.path.join(meetings_dir, f"meeting_{timestamp}.{extension}")
+        # Get user settings
+        user_settings = config.get_user_settings()
 
-        # Initialize components
-        transcriber = SpeechTranscriber(config)
-        protocol_writer = ProtocolWriter(args.output)
+        # Create and run the UI with default participant
+        app = TranscriberUI(default_participant=user_settings["default_participant"])
 
-        # Create and run the UI
-        app = TranscriberUI()
+        # Create default meeting if configured
+        if user_settings["create_default_meeting"]:
+            app.meeting_store.create_meeting(
+                title="Untitled Meeting",
+                participants=[user_settings["default_participant"]],
+            )
 
-        def handle_transcript(text: str) -> None:
-            app.add_transcript(text)
-            protocol_writer.write_entry(text)
-
-        # Start the UI
         app.run()
 
     except ValueError as e:
@@ -81,9 +71,6 @@ def main() -> int:
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         return 1
-    finally:
-        if "protocol_writer" in locals():
-            protocol_writer.close_protocol()
 
     return 0
 

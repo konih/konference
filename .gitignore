@@ -35,7 +35,9 @@ venv.bak/
 **/.venv
 **/.myvenv
 **/myvenv
-
+meetings/*.md
+meetings/*.yaml
+meetings/*.txt
 # Build and Distribution
 build/
 develop-eggs/

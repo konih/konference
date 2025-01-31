@@ -1,31 +1,41 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, AsyncMock
 import pytest
 from textual.widgets import Button, Label
 from src.ui.action_handler import ActionHandler
-from src.logger import AppLogger
-from datetime import datetime
-from typing import Any
+from src.meeting_note import MeetingNote
+import logging
 
 
 @pytest.fixture
 def mock_app() -> Mock:
     """Create a mock app with required attributes and methods."""
     app = Mock()
-    app.logger = AppLogger()
+    app.logger = Mock()
+    app.logger.logger = Mock()
+    # Mock getEffectiveLevel to return a real logging level
+    app.logger.logger.getEffectiveLevel.return_value = logging.INFO
     app.recording = False
     app.start_time = None
+    app.meeting_store = Mock()
+    app.meeting_store.current_meeting = None
+    app.show_meeting_form = AsyncMock()
 
     # Mock widgets
     toggle_button = Mock(spec=Button)
     status_label = Mock(spec=Label)
+    timer_label = Mock(spec=Label)
+    new_meeting_btn = Mock(spec=Button)
+    start_recording_btn = Mock(spec=Button)
 
-    # Setup query_one to return our mock widgets
-    def mock_query_one(selector: str) -> Any:
-        if selector == "#toggle":
-            return toggle_button
-        elif selector == "#status":
-            return status_label
-        raise ValueError(f"Unexpected selector: {selector}")
+    def mock_query_one(selector: str) -> Mock:
+        widgets = {
+            "#toggle": toggle_button,
+            "#status": status_label,
+            "#timer": timer_label,
+            "#new_meeting": new_meeting_btn,
+            "#start_recording": start_recording_btn,
+        }
+        return widgets.get(selector, Mock())
 
     app.query_one = mock_query_one
     return app
@@ -37,50 +47,80 @@ def action_handler(mock_app: Mock) -> ActionHandler:
     return ActionHandler(mock_app)
 
 
-@pytest.mark.asyncio(loop_scope="function")
-async def test_toggle_recording_start(
-    action_handler: ActionHandler, mock_app: Mock
-) -> None:
+@pytest.mark.asyncio
+async def test_new_meeting(mock_app: Mock, action_handler: ActionHandler) -> None:
+    """Test creating a new meeting."""
+    await action_handler.new_meeting()
+    mock_app.show_meeting_form.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_new_meeting_cancelled(mock_app: Mock, action_handler: ActionHandler) -> None:
+    """Test cancelling new meeting creation."""
+    mock_app.show_meeting_details.return_value = None
+    await action_handler.new_meeting()
+    mock_app.meeting_store.create_meeting.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_edit_meeting(mock_app: Mock, action_handler: ActionHandler) -> None:
+    """Test editing an existing meeting."""
+    current_meeting = Mock()
+    current_meeting.title = "Old Title"
+    current_meeting.participants = ["Bob"]
+    current_meeting.tags = ["old"]
+    mock_app.meeting_store.current_meeting = current_meeting
+
+    await action_handler.edit_meeting()
+    mock_app.show_meeting_form.assert_awaited_once_with(
+        title="Old Title", participants=["Bob"], tags=["old"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_edit_meeting_no_current_meeting(mock_app: Mock, action_handler: ActionHandler) -> None:
+    """Test editing when no meeting is active."""
+    mock_app.meeting_store.current_meeting = None
+    await action_handler.edit_meeting()
+    mock_app.show_meeting_details.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_edit_meeting_cancelled(mock_app: Mock, action_handler: ActionHandler) -> None:
+    """Test cancelling meeting edit."""
+    current_meeting = Mock(spec=MeetingNote)
+    current_meeting.title = "Old Title"
+    current_meeting.participants = ["Bob"]
+    current_meeting.tags = ["old"]
+    mock_app.meeting_store.current_meeting = current_meeting
+    mock_app.show_meeting_details.return_value = None
+
+    await action_handler.edit_meeting()
+    assert current_meeting.title == "Old Title"
+    assert current_meeting.participants == ["Bob"]
+    assert current_meeting.tags == ["old"]
+    current_meeting.save.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_start_recording(action_handler: ActionHandler, mock_app: Mock) -> None:
     """Test starting recording."""
-    with patch("asyncio.create_task") as mock_create_task:
-        action_handler.toggle_recording()
+    mock_app.meeting_store.current_meeting = Mock(title="Test Meeting")
+    mock_app.start_recording = AsyncMock()
+    mock_app.recording = False
 
-        assert mock_app.recording is True
-        toggle_btn = mock_app.query_one("#toggle")
-        status = mock_app.query_one("#status")
-
-        assert isinstance(mock_app.start_time, datetime)
-        toggle_btn.label = "🛑 Stop"
-        toggle_btn.classes = "action-button -recording"
-        status.update.assert_called_once()
-
-        # Check both timer and recording tasks were created
-        assert mock_create_task.call_count == 2
-        calls = mock_create_task.call_args_list
-        assert any(call.args[0] == mock_app._start_timer() for call in calls)
-        assert any(call.args[0] == mock_app.start_recording() for call in calls)
+    await action_handler.start_recording()
+    mock_app.start_recording.assert_awaited_once_with("Test Meeting")
 
 
-@pytest.mark.asyncio(loop_scope="function")
-async def test_toggle_recording_stop(
-    action_handler: ActionHandler, mock_app: Mock
-) -> None:
-    """Test stopping recording."""
-    # Set initial state to recording
-    mock_app.recording = True
-
-    with patch("asyncio.create_task") as mock_create_task:
-        action_handler.toggle_recording()
-
-        assert mock_app.recording is False
-        toggle_btn = mock_app.query_one("#toggle")
-        status = mock_app.query_one("#status")
-
-        toggle_btn.label = "🎙 Start"
-        toggle_btn.classes = "action-button"
-        status.update.assert_called_once_with("Ready")
-        mock_app._stop_timer.assert_called_once()
-        mock_create_task.assert_called_once_with(mock_app.stop_recording())
+@pytest.mark.asyncio
+async def test_start_recording_no_meeting(action_handler: ActionHandler, mock_app: Mock) -> None:
+    """Test attempting to start recording without an active meeting."""
+    mock_app.meeting_store.current_meeting = None
+    await action_handler.start_recording()
+    mock_app.notify.assert_called_once_with(
+        "Please create a new meeting first", title="⚠️ Warning"
+    )
 
 
 def test_take_screenshot(action_handler: ActionHandler, mock_app: Mock) -> None:
@@ -99,20 +139,26 @@ def test_open_settings(action_handler: ActionHandler, mock_app: Mock) -> None:
 
 def test_summarize(action_handler: ActionHandler, mock_app: Mock) -> None:
     """Test summarize action."""
+    # Test when no meeting is active
     action_handler.summarize()
-    mock_app.notify.assert_called_once_with(
-        "Meeting summary coming soon!", title="📝 Summary"
-    )
+    mock_app.notify.assert_called_once_with("No active meeting!", title="📝 Summary")
+
+    # Test with active meeting
+    mock_app.notify.reset_mock()
+    mock_app.meeting_store.current_meeting = Mock()
+    mock_app.meeting_store.current_meeting.get_summary.return_value = "Test summary"
+
+    action_handler.summarize()
+    mock_app.notify.assert_called_once_with("Test summary", title="📝 Meeting Summary")
 
 
 def test_toggle_log_level(action_handler: ActionHandler, mock_app: Mock) -> None:
     """Test log level toggle."""
-    # Set initial log level
-    mock_app.logger.set_level("INFO")
+    # Mock the current log level
+    mock_app.logger.logger.getEffectiveLevel.return_value = logging.INFO
 
     # Toggle log level
     action_handler.toggle_log_level()
 
-    # Check if log level was changed to next level (WARNING)
-    current_level = mock_app.logger.logger.getEffectiveLevel()
-    assert current_level == 30  # WARNING level
+    # Verify the log level was changed to WARNING (next in sequence)
+    mock_app.logger.set_level.assert_called_with("WARNING")

@@ -25,11 +25,26 @@ class LoggingConfig(TypedDict):
     file_logging_enabled: bool
 
 
+class UserConfig(TypedDict):
+    default_participant: str
+    create_default_meeting: bool
+
+
+class AudioConfig(TypedDict):
+    enabled: bool
+    format: int  # pyaudio format
+    channels: int
+    rate: int
+    chunk: int
+
+
 class AppConfig(TypedDict):
     paths: PathsConfig
     azure: AzureConfig
     transcription: TranscriptionConfig
     logging: LoggingConfig
+    user: UserConfig
+    audio: AudioConfig  # Add audio config
 
 
 PathName = Literal["logs", "meetings", "screenshots"]
@@ -85,3 +100,17 @@ class Config:
     def get_logging_settings(self) -> LoggingConfig:
         """Get logging settings."""
         return cast(LoggingConfig, self.config["logging"])
+
+    def get_user_settings(self) -> UserConfig:
+        """Get user settings."""
+        return cast(
+            UserConfig,
+            self.config.get(
+                "user", {"default_participant": "", "create_default_meeting": False}
+            ),
+        )
+
+    def get_speech_config(self) -> Dict[str, str]:
+        """Get speech configuration settings."""
+        # Default implementation - override or extend as needed
+        return {"subscription": "", "region": ""}

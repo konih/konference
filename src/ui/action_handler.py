@@ -1,7 +1,4 @@
 from typing import TYPE_CHECKING
-from datetime import datetime
-import asyncio
-from rich.text import Text
 import logging
 
 if TYPE_CHECKING:
@@ -13,29 +10,41 @@ class ActionHandler:
 
     def __init__(self, app: "TranscriberUI") -> None:
         self.app = app
-        self.logger = app.logger.logger
+        self.logger: logging.Logger = app.logger.logger
 
-    def toggle_recording(self) -> None:
-        """Handle recording toggle action."""
-        self.app.recording = not self.app.recording
-        toggle_btn = self.app.query_one("#toggle")
-        status = self.app.query_one("#status")
+    async def new_meeting(self) -> None:
+        """Create a new meeting."""
+        await self.app.show_meeting_form()
+        self.logger.info("Opening new meeting form")
 
-        if self.app.recording:
-            self.logger.info("Started recording")
-            self.app.start_time = datetime.now()
-            toggle_btn.label = "🛑 Stop"
-            toggle_btn.classes = "action-button -recording"
-            status.update(Text("🔴 Recording...", style="bold red"))
-            asyncio.create_task(self.app._start_timer())
-            asyncio.create_task(self.app.start_recording())
+    async def edit_meeting(self) -> None:
+        """Edit the current meeting."""
+        if not self.app.meeting_store.current_meeting:
+            self.app.notify("No meeting to edit!", title="⚠️ Warning")
+            return
+
+        current = self.app.meeting_store.current_meeting
+        self.logger.info(f"Editing meeting: {current.title}")
+
+        await self.app.show_meeting_form(
+            title=current.title, participants=current.participants, tags=current.tags
+        )
+
+    async def start_recording(self) -> None:
+        """Start or pause recording."""
+        if not self.app.meeting_store.current_meeting:
+            self.logger.warning("Cannot start recording without an active meeting")
+            self.app.notify("Please create a new meeting first", title="⚠️ Warning")
+            return
+
+        if not self.app.recording:
+            # Start recording
+            await self.app.start_recording(self.app.meeting_store.current_meeting.title)
         else:
-            self.logger.info("Stopped recording")
-            toggle_btn.label = "🎙 Start"
-            toggle_btn.classes = "action-button"
-            status.update("Ready")
-            self.app._stop_timer()
-            asyncio.create_task(self.app.stop_recording())
+            if self.app.paused:
+                await self.app.resume_recording()
+            else:
+                await self.app.pause_recording()
 
     def take_screenshot(self) -> None:
         """Handle screenshot action."""
@@ -49,8 +58,11 @@ class ActionHandler:
 
     def summarize(self) -> None:
         """Handle summarize action."""
-        self.logger.info("Generating meeting summary")
-        self.app.notify("Meeting summary coming soon!", title="📝 Summary")
+        if self.app.meeting_store and self.app.meeting_store.current_meeting:
+            summary = self.app.meeting_store.current_meeting.get_summary()
+            self.app.notify(summary, title="📝 Meeting Summary")
+        else:
+            self.app.notify("No active meeting!", title="📝 Summary")
 
     def toggle_log_level(self) -> None:
         """Handle log level toggle action."""
@@ -63,3 +75,14 @@ class ActionHandler:
         self.app.logger.set_level(new_level)
         self.app.notify(f"Log level changed to {new_level}", title="🔍 Log Level")
         self.logger.info(f"Log level changed to {new_level}")
+
+    def _update_recording_ui(self, recording: bool) -> None:
+        """Update UI elements for recording state."""
+        self.app._update_recording_ui()
+
+    async def action_quit(self) -> None:
+        """Quit the application."""
+        self.logger.info("Quit key binding pressed")
+        self.logger.info("Application shutting down")
+        await self.app.stop_recording()
+        self.app.exit()

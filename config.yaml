@@ -19,3 +19,16 @@ transcription:
 logging:
   level: 'DEBUG' # DEBUG, INFO, WARNING, ERROR, CRITICAL
   file_logging_enabled: false
+
+# User settings
+user:
+  default_participant: 'Konrad Heimel'
+  create_default_meeting: true
+
+# Audio capture settings
+audio:
+  enabled: true # Disabled by default
+  format: 32 # paFloat32
+  channels: 1
+  rate: 16000
+  chunk: 1024
