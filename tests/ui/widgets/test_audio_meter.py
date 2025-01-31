@@ -1,13 +1,15 @@
-import pytest
-from src.ui.widgets.audio_meter import AudioMeter
-import numpy as np
-from textual.strip import Strip
 from collections import deque
-from textual.geometry import Size
-from unittest.mock import Mock
-from textual.app import App
-from textual._context import active_app
 from typing import Generator
+from unittest.mock import Mock
+
+import numpy as np
+import pytest
+from textual._context import active_app
+from textual.app import App
+from textual.geometry import Size
+from textual.strip import Strip
+
+from src.ui.widgets.audio_meter import AudioMeter
 
 
 @pytest.fixture

@@ -1,8 +1,9 @@
-from typing import Dict, List, Optional
+import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional
+
 from src.meeting_note import MeetingNote
-import logging
 
 
 class MeetingStore:

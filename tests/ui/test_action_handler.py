@@ -1,9 +1,13 @@
+import logging
+from datetime import datetime
 from unittest.mock import Mock, AsyncMock
+from unittest.mock import call
+
 import pytest
 from textual.widgets import Button, Label
-from src.ui.action_handler import ActionHandler
+
 from src.meeting_note import MeetingNote
-import logging
+from src.ui.action_handler import ActionHandler
 
 
 @pytest.fixture
@@ -19,6 +23,16 @@ def mock_app() -> Mock:
     app.meeting_store = Mock()
     app.meeting_store.current_meeting = None
     app.show_meeting_form = AsyncMock()
+
+    # Add OpenAI service mock
+    app.openai_service = Mock()
+    app.openai_service.generate_summary = AsyncMock()
+
+    # Add state mock with async methods
+    app.state = Mock()
+    app.state.can_generate_summary = AsyncMock()
+    app.state.toggle_summarizing = AsyncMock()
+    app.state.toggle_language = AsyncMock()
 
     # Mock widgets
     toggle_button = Mock(spec=Button)
@@ -55,7 +69,9 @@ async def test_new_meeting(mock_app: Mock, action_handler: ActionHandler) -> Non
 
 
 @pytest.mark.asyncio
-async def test_new_meeting_cancelled(mock_app: Mock, action_handler: ActionHandler) -> None:
+async def test_new_meeting_cancelled(
+    mock_app: Mock, action_handler: ActionHandler
+) -> None:
     """Test cancelling new meeting creation."""
     mock_app.show_meeting_details.return_value = None
     await action_handler.new_meeting()
@@ -78,7 +94,9 @@ async def test_edit_meeting(mock_app: Mock, action_handler: ActionHandler) -> No
 
 
 @pytest.mark.asyncio
-async def test_edit_meeting_no_current_meeting(mock_app: Mock, action_handler: ActionHandler) -> None:
+async def test_edit_meeting_no_current_meeting(
+    mock_app: Mock, action_handler: ActionHandler
+) -> None:
     """Test editing when no meeting is active."""
     mock_app.meeting_store.current_meeting = None
     await action_handler.edit_meeting()
@@ -86,7 +104,9 @@ async def test_edit_meeting_no_current_meeting(mock_app: Mock, action_handler: A
 
 
 @pytest.mark.asyncio
-async def test_edit_meeting_cancelled(mock_app: Mock, action_handler: ActionHandler) -> None:
+async def test_edit_meeting_cancelled(
+    mock_app: Mock, action_handler: ActionHandler
+) -> None:
     """Test cancelling meeting edit."""
     current_meeting = Mock(spec=MeetingNote)
     current_meeting.title = "Old Title"
@@ -114,7 +134,9 @@ async def test_start_recording(action_handler: ActionHandler, mock_app: Mock) ->
 
 
 @pytest.mark.asyncio
-async def test_start_recording_no_meeting(action_handler: ActionHandler, mock_app: Mock) -> None:
+async def test_start_recording_no_meeting(
+    action_handler: ActionHandler, mock_app: Mock
+) -> None:
     """Test attempting to start recording without an active meeting."""
     mock_app.meeting_store.current_meeting = None
     await action_handler.start_recording()
@@ -137,19 +159,54 @@ def test_open_settings(action_handler: ActionHandler, mock_app: Mock) -> None:
     )
 
 
-def test_summarize(action_handler: ActionHandler, mock_app: Mock) -> None:
+@pytest.mark.asyncio
+async def test_summarize(action_handler: ActionHandler, mock_app: Mock) -> None:
     """Test summarize action."""
     # Test when no meeting is active
-    action_handler.summarize()
-    mock_app.notify.assert_called_once_with("No active meeting!", title="📝 Summary")
+    mock_app.meeting_store.current_meeting = None
+    await action_handler.summarize()
+    mock_app.notify.assert_called_with(
+        "No active meeting to summarize!", title="⚠️ Warning"
+    )
 
     # Test with active meeting
     mock_app.notify.reset_mock()
-    mock_app.meeting_store.current_meeting = Mock()
-    mock_app.meeting_store.current_meeting.get_summary.return_value = "Test summary"
+    mock_meeting = Mock()
+    mock_meeting.title = "Test Meeting"
+    mock_meeting.start_time = datetime.now()
+    mock_meeting.duration = "1:00:00"
+    mock_meeting.participants = ["Alice", "Bob"]
+    mock_meeting.raw_text = "Test content"
+    mock_meeting.save = Mock()
 
-    action_handler.summarize()
-    mock_app.notify.assert_called_once_with("Test summary", title="📝 Meeting Summary")
+    mock_app.meeting_store.current_meeting = mock_meeting
+    mock_app.openai_service.generate_summary = AsyncMock(return_value="Test summary")
+    mock_app.state.can_generate_summary = AsyncMock(return_value=True)
+    mock_app.state.toggle_summarizing = AsyncMock()
+
+    await action_handler.summarize()
+
+    # Verify the summary was generated and saved
+    mock_app.state.toggle_summarizing.assert_has_awaits([call(True), call(False)])
+    mock_app.openai_service.generate_summary.assert_awaited_once()
+    mock_meeting.save.assert_called_once()
+    mock_app.notify.assert_called_with(
+        "Summary generated successfully!", title="📝 Summary"
+    )
+
+
+@pytest.mark.asyncio
+async def test_summarize_not_allowed(
+    action_handler: ActionHandler, mock_app: Mock
+) -> None:
+    """Test summarize action when not allowed."""
+    mock_app.meeting_store.current_meeting = Mock()
+    mock_app.state.can_generate_summary = AsyncMock(return_value=False)
+
+    await action_handler.summarize()
+    mock_app.notify.assert_called_with(
+        "Cannot generate summary while recording or processing", title="⚠️ Warning"
+    )
 
 
 def test_toggle_log_level(action_handler: ActionHandler, mock_app: Mock) -> None:

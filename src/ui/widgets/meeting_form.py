@@ -1,8 +1,9 @@
-from textual.widgets import Static, Input, TextArea, Button
-from textual.containers import Container, Horizontal, Vertical
-from textual.app import ComposeResult
-from textual.message import Message
 from typing import List, Optional, Tuple
+
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal, Vertical
+from textual.message import Message
+from textual.widgets import Static, Input, TextArea, Button
 
 
 class FormResult(Message):

@@ -1,12 +1,14 @@
-import azure.cognitiveservices.speech as speechsdk
-import os
-from typing import Optional
-from dotenv import load_dotenv
-from src.config import Config
-from src.logger import AppLogger
 import asyncio
+import os
 import queue
 from queue import Queue
+from typing import Optional
+
+import azure.cognitiveservices.speech as speechsdk
+from dotenv import load_dotenv
+
+from src.config import Config
+from src.logger import AppLogger
 from src.state.app_state import TranscriptionLanguage
 
 

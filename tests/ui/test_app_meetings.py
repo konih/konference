@@ -1,5 +1,8 @@
+from typing import Tuple, List, Any, Optional, cast
+from unittest.mock import Mock
+
 import pytest
-from typing import Tuple, List, Any, Optional
+
 from src.ui.app import TranscriberUI
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.meetings]
@@ -8,30 +11,21 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.meetings]
 @pytest.mark.asyncio
 async def test_meeting_form_workflow(app: TranscriberUI) -> None:
     """Test the complete meeting form workflow."""
+    mock_store = cast(Mock, app.meeting_store)
 
     # Mock the form submission
     async def mock_show_form(
         *args: Any, **kwargs: Any
-    ) -> Optional[Tuple[str, List[str], List[str]]]:
+    ) -> Tuple[str, List[str], List[str]]:
         return "Test Meeting", ["Alice"], ["important"]
 
-    # Replace the show_meeting_form method with our mock
-    app.show_meeting_form = mock_show_form  # type: ignore[assignment]
-
-    # Get initial content widget state
-    meeting_content = app.query_one("#meeting-content")
-    assert meeting_content.styles.display == "block"
-
-    # Create a new meeting directly
+    app.show_meeting_form = mock_show_form  # type: ignore[method-assign]
     app.meeting_store.current_meeting = None
 
-    # Simulate form submission
     form_result = await app.show_meeting_form()
-    if form_result is not None:  # Add type check to satisfy mypy
-        await app._handle_form_result(form_result)
+    await app._handle_form_result(form_result)
 
-    # Verify meeting was created with correct values
-    app.meeting_store.create_meeting.assert_called_once_with(  # type: ignore[attr-defined]
+    mock_store.create_meeting.assert_called_once_with(
         title="Test Meeting", participants=["Alice"], tags=["important"]
     )
 

@@ -1,10 +1,12 @@
-import pytest
-from datetime import datetime
-from src.protocol_writer import ProtocolWriter
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Generator
+
+import pytest
 from pytest import FixtureRequest
+
+from src.protocol_writer import ProtocolWriter
 
 
 @pytest.fixture(scope="function")

@@ -6,3 +6,4 @@ python-dotenv
 pyaudio
 numpy
 plotext>=5.2.8
+openai>=1.0.0

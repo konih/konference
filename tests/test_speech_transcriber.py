@@ -1,9 +1,11 @@
-import pytest
-from src.speech_transcriber import SpeechTranscriber
-from src.config import Config
-from unittest.mock import MagicMock, patch, Mock
 import asyncio
 from typing import Generator
+from unittest.mock import MagicMock, patch, Mock
+
+import pytest
+
+from src.config import Config
+from src.speech_transcriber import SpeechTranscriber
 
 
 @pytest.fixture(scope="function")

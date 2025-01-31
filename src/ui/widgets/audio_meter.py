@@ -1,13 +1,14 @@
-from textual.widget import Widget
-from textual.reactive import reactive
+import time
+from collections import deque
+from typing import Any, Optional
+
+import numpy as np
+import plotext as plt
 from rich.segment import Segment
 from rich.style import Style
+from textual.reactive import reactive
 from textual.strip import Strip
-import numpy as np
-from collections import deque
-import time
-import plotext as plt
-from typing import Any, Optional
+from textual.widget import Widget
 
 
 class AudioMeter(Widget):

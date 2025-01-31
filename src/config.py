@@ -1,6 +1,7 @@
-from typing import Dict, TypedDict, cast, Literal
-import yaml  # We don't need the type ignore comment anymore since we configured it in mypy.ini
 import os
+from typing import Dict, TypedDict, cast, Literal, Any
+
+import yaml  # We don't need the type ignore comment anymore since we configured it in mypy.ini
 
 
 class AzureConfig(TypedDict):
@@ -38,13 +39,20 @@ class AudioConfig(TypedDict):
     chunk: int
 
 
+class OpenAIConfig(TypedDict):
+    model: str
+    temperature: float
+    max_tokens: int
+
+
 class AppConfig(TypedDict):
     paths: PathsConfig
     azure: AzureConfig
     transcription: TranscriptionConfig
     logging: LoggingConfig
     user: UserConfig
-    audio: AudioConfig  # Add audio config
+    audio: AudioConfig
+    openai: OpenAIConfig  # Add OpenAI config
 
 
 PathName = Literal["logs", "meetings", "screenshots"]
@@ -114,3 +122,44 @@ class Config:
         """Get speech configuration settings."""
         # Default implementation - override or extend as needed
         return {"subscription": "", "region": ""}
+
+    def get_openai_settings(self) -> Dict[str, Any]:
+        """Get OpenAI settings, with environment variables taking precedence."""
+        return {
+            "api_key": os.getenv("OPENAI_API_KEY", ""),
+            "model": self.config["openai"]["model"],
+            "temperature": self.config["openai"]["temperature"],
+            "max_tokens": self.config["openai"]["max_tokens"],
+        }
+
+    def get_system_prompt(self) -> str:
+        """Get the system prompt for OpenAI."""
+        return """You are an expert meeting summarizer. Your task is to analyze meeting transcripts and create clear, concise summaries that capture the essential information. Focus on:
+
+1. Key Discussion Points
+- Main topics covered
+- Important decisions made
+- Problems discussed and solutions proposed
+
+2. Action Items
+- Tasks assigned
+- Deadlines mentioned
+- Responsibilities delegated
+
+3. Follow-up Items
+- Items requiring further discussion
+- Scheduled follow-up meetings
+- Outstanding questions
+
+Format the summary in a professional, easy-to-read structure using markdown. Be concise but comprehensive, ensuring no critical information is lost. Maintain a neutral, professional tone.
+
+The transcript will be provided in chronological order with timestamps. Focus on synthesizing the content rather than preserving every detail.
+
+Current meeting context:
+Title: {title}
+Date: {date}
+Duration: {duration}
+Participants: {participants}
+
+Transcript follows:
+"""

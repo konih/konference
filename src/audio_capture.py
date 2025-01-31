@@ -1,8 +1,9 @@
-import pyaudio
-from typing import AsyncGenerator, Optional, Callable, cast
 import asyncio
 import logging
+from typing import AsyncGenerator, Optional, Callable, cast
+
 import numpy as np
+import pyaudio
 from numpy.typing import NDArray
 
 

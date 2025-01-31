@@ -29,11 +29,14 @@ pytest==8.3.4
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
+    #   pytest-timeout
 pytest-asyncio==0.25.3
     # via -r requirements-dev.in
 pytest-cov==6.0.0
     # via -r requirements-dev.in
 pytest-mock==3.14.0
+    # via -r requirements-dev.in
+pytest-timeout==2.3.1
     # via -r requirements-dev.in
 types-pyyaml==6.0.12.20241230
     # via -r requirements-dev.in

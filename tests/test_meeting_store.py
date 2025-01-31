@@ -1,9 +1,11 @@
-from datetime import datetime
-import pytest
-from src.meeting_store import MeetingStore
-from src.meeting_note import MeetingNote
 import os
+from datetime import datetime
 from pathlib import Path
+
+import pytest
+
+from src.meeting_note import MeetingNote
+from src.meeting_store import MeetingStore
 
 
 @pytest.fixture

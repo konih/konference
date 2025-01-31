@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional, TextIO
+
 from src.meeting_store import MeetingStore
 
 

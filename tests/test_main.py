@@ -1,8 +1,10 @@
-import pytest
-from src.main import validate_azure_credentials, parse_arguments
-from src.config import Config
-from unittest.mock import MagicMock, patch
 import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from src.config import Config
+from src.main import validate_azure_credentials, parse_arguments
 
 
 def test_validate_azure_credentials_valid() -> None:

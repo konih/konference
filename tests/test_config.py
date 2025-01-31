@@ -1,10 +1,12 @@
-import pytest
-from pathlib import Path
 import os
-from src.config import Config, PathName
-import yaml
 import shutil
+from pathlib import Path
+
+import pytest
+import yaml
 from pytest import FixtureRequest
+
+from src.config import Config, PathName
 
 
 @pytest.fixture(scope="function")

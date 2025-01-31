@@ -1,9 +1,11 @@
-import pytest
-from src.audio_capture import AudioCapture
-import pyaudio
-from unittest.mock import MagicMock, patch
-from typing import Generator
 from typing import Any, AsyncGenerator
+from typing import Generator
+from unittest.mock import MagicMock, patch
+
+import pyaudio
+import pytest
+
+from src.audio_capture import AudioCapture
 
 
 @pytest.fixture(scope="function")

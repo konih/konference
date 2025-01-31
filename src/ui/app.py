@@ -1,24 +1,27 @@
+import asyncio
+import signal
+from datetime import datetime
+from typing import Optional, List, Any, AsyncGenerator, Tuple
+
+import pyaudio
+from rich.text import Text
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Container, Horizontal
 from textual.widgets import Header, Footer, Button
-from textual.binding import Binding
-from datetime import datetime
-import asyncio
-from typing import Optional, List, Any, AsyncGenerator, Tuple
-from src.logger import AppLogger
-from src.config import Config
-from src.ui.action_handler import ActionHandler
-from src.speech_transcriber import SpeechTranscriber
-from src.ui.widgets.audio_meter import AudioMeter
-from src.audio_capture import AudioCapture
-import pyaudio
-from src.protocol_writer import ProtocolWriter
-from src.meeting_store import MeetingStore
-import signal
-from rich.text import Text
-from src.ui.widgets.meeting_form import MeetingForm, FormResult
 from textual.widgets import Label as TextualLabel, Log as TextualLog
+
+from src.audio_capture import AudioCapture
+from src.config import Config
+from src.logger import AppLogger
+from src.meeting_store import MeetingStore
+from src.protocol_writer import ProtocolWriter
+from src.services.openai_service import OpenAIService
+from src.speech_transcriber import SpeechTranscriber
 from src.state.app_state import AppState, RecordingState, TranscriptionLanguage
+from src.ui.action_handler import ActionHandler
+from src.ui.widgets.audio_meter import AudioMeter
+from src.ui.widgets.meeting_form import MeetingForm, FormResult
 
 
 class Timer(TextualLabel):
@@ -26,7 +29,7 @@ class Timer(TextualLabel):
 
     def update_time(self, text: str) -> None:
         """Update the timer text."""
-        self.update(text)
+        pass
 
 
 class Status(TextualLabel):
@@ -34,7 +37,8 @@ class Status(TextualLabel):
 
     def update(self, text: str) -> None:
         """Update the status text."""
-        self.update_content(text)
+        pass
+        # self.update_content(text)
 
 
 class TranscriberUI(App):
@@ -257,6 +261,9 @@ class TranscriberUI(App):
 
         # Add state manager
         self.state = AppState()
+
+        # Initialize OpenAI service
+        self.openai_service = OpenAIService(self.config)
 
     async def on_mount(self) -> None:
         """Handle app startup."""
@@ -595,8 +602,7 @@ class TranscriberUI(App):
         """Start the recording and transcription process."""
         try:
             await self.state.update_state(
-                recording_state=RecordingState.RECORDING,
-                is_processing=True
+                recording_state=RecordingState.RECORDING, is_processing=True
             )
             await self._update_language_button()
 
@@ -630,7 +636,9 @@ class TranscriberUI(App):
                 self.logger.logger.info("Recording started successfully")
 
             except Exception as e:
-                self.logger.logger.error(f"Error starting recording: {e}", exc_info=True)
+                self.logger.logger.error(
+                    f"Error starting recording: {e}", exc_info=True
+                )
                 # Clean up if something went wrong
                 self.recording = False
                 if self._transcription_task:
@@ -746,13 +754,12 @@ class TranscriberUI(App):
         elif button_id == "screenshot":
             self.action_handler.take_screenshot()
         elif button_id == "summarize":
-            self.action_handler.summarize()
+            await self.action_handler.summarize()
         elif button_id == "loglevel":
             self.action_handler.toggle_log_level()
         elif button_id == "toggle_language":
             new_language = await self.state.toggle_language()
             if new_language:
-                # Update transcriber's speech config
                 self.transcriber.set_language(new_language)
                 self.notify(
                     f"Language switched to {new_language.name.title()}",
@@ -885,10 +892,9 @@ class TranscriberUI(App):
         """Resume the current recording."""
         try:
             await self.state.update_state(
-                recording_state=RecordingState.RECORDING,
-                is_processing=True
+                recording_state=RecordingState.RECORDING, is_processing=True
             )
-            
+
             if self.recording and self.paused:
                 self.paused = False
                 self.logger.logger.info("Resuming recording")

@@ -1,11 +1,14 @@
-import pytest_asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from datetime import datetime
 import asyncio
+from datetime import datetime
 from typing import Any, Optional, AsyncGenerator
+from unittest.mock import Mock, AsyncMock, patch
+
+import pytest_asyncio
 from textual._context import active_app
-from src.ui.app import TranscriberUI
+from textual.widgets import Button
+
 from src.logger import AppLogger
+from src.ui.app import TranscriberUI
 
 
 @pytest_asyncio.fixture
@@ -22,6 +25,8 @@ async def mock_components() -> dict:
         "meeting": create_mock_meeting(),
         "store": create_mock_store(),
         "queue": create_mock_queue(),
+        "state": create_mock_state(),
+        "speech_sdk": create_mock_speech_sdk(),
     }
 
 
@@ -132,10 +137,32 @@ def create_mock_queue() -> Mock:
     return mock_queue
 
 
+def create_mock_state() -> Mock:
+    """Create a mock app state component."""
+    mock_state = Mock()
+    # Make toggle_language return a coroutine
+    mock_state.toggle_language = AsyncMock()
+    mock_state.can_toggle_language = AsyncMock(return_value=True)
+    return mock_state
+
+
+def create_mock_speech_sdk() -> Mock:
+    """Create a mock speech SDK component."""
+    mock_sdk = Mock()
+    mock_sdk.speech_config = Mock()
+    mock_sdk.audio_config = Mock()
+    mock_sdk.speech_recognizer = Mock()
+    mock_sdk._running = False
+    mock_sdk.get_transcript_queue = Mock(return_value=create_mock_queue())
+    mock_sdk.start_transcription = Mock()
+    mock_sdk.stop_transcription = AsyncMock()
+    mock_sdk.set_language = Mock()
+    return mock_sdk
+
+
 @pytest_asyncio.fixture
 async def app(mock_components: dict[str, Any]) -> AsyncGenerator[TranscriberUI, None]:
     """Create a test app instance with mocked components."""
-    # Patch the SpeechTranscriber initialization
     with patch("src.ui.app.SpeechTranscriber") as mock_transcriber_class:
         # Configure the mock transcriber instance
         mock_transcriber_instance = Mock()
@@ -161,6 +188,8 @@ async def app(mock_components: dict[str, Any]) -> AsyncGenerator[TranscriberUI, 
         app.logger = mock_components["logger"]
         app.audio_capture = mock_components["audio"]
         app.meeting_store = mock_components["store"]
+        app.state = mock_components["state"]
+        app.speech_transcriber = mock_components["speech_sdk"]
 
         def mock_query_one(selector: str, widget_type: Optional[type] = None) -> Any:
             if selector == "#timer":
@@ -171,9 +200,15 @@ async def app(mock_components: dict[str, Any]) -> AsyncGenerator[TranscriberUI, 
                 return mock_components["log"]
             elif selector == "#status":
                 return Mock()
+            elif selector == "#language_toggle":
+                toggle = Mock(spec=Button)
+                toggle.disabled = False
+                toggle.label = Mock()
+                return toggle
             return Mock()
 
         app.query_one = mock_query_one  # type: ignore[method-assign]
+        app.action_toggle_language = AsyncMock()
 
         async with app.run_test():
             yield app

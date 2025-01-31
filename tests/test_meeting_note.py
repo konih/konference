@@ -1,8 +1,10 @@
-from datetime import datetime, timedelta
-import pytest
 import os
-from src.meeting_note import MeetingNote
+from datetime import datetime, timedelta
 from pathlib import Path
+
+import pytest
+
+from src.meeting_note import MeetingNote
 
 
 @pytest.fixture

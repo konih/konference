@@ -1,5 +1,5 @@
-from typing import TYPE_CHECKING
 import logging
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.ui.app import TranscriberUI
@@ -56,13 +56,46 @@ class ActionHandler:
         self.logger.info("Opening settings dialog")
         self.app.notify("Settings dialog coming soon!", title="⚙️ Settings")
 
-    def summarize(self) -> None:
+    async def summarize(self) -> None:
         """Handle summarize action."""
-        if self.app.meeting_store and self.app.meeting_store.current_meeting:
-            summary = self.app.meeting_store.current_meeting.get_summary()
-            self.app.notify(summary, title="📝 Meeting Summary")
-        else:
-            self.app.notify("No active meeting!", title="📝 Summary")
+        if not self.app.meeting_store.current_meeting:
+            self.app.notify("No active meeting to summarize!", title="⚠️ Warning")
+            return
+
+        # Check if we can generate summary
+        if not await self.app.state.can_generate_summary():
+            self.app.notify(
+                "Cannot generate summary while recording or processing",
+                title="⚠️ Warning",
+            )
+            return
+
+        try:
+            await self.app.state.toggle_summarizing(True)
+            self.logger.info("Generating meeting summary")
+
+            meeting = self.app.meeting_store.current_meeting
+            meeting_data = {
+                "title": meeting.title,
+                "date": meeting.start_time.strftime("%Y-%m-%d"),
+                "duration": str(meeting.duration) if meeting.duration else "Unknown",
+                "participants": ", ".join(meeting.participants),
+                "content": meeting.raw_text,
+            }
+
+            summary = await self.app.openai_service.generate_summary(meeting_data)
+            if summary:
+                meeting.summary = summary
+                meeting.save()
+                self.app.notify("Summary generated successfully!", title="📝 Summary")
+            else:
+                self.app.notify("Failed to generate summary", title="❌ Error")
+
+        except Exception as e:
+            self.logger.error(f"Error generating summary: {e}")
+            self.app.notify("Failed to generate summary", title="❌ Error")
+        finally:
+            await self.app.state.toggle_summarizing(False)
 
     def toggle_log_level(self) -> None:
         """Handle log level toggle action."""

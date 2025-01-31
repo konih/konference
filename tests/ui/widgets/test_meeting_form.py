@@ -1,12 +1,14 @@
+import asyncio
+from typing import Any, Optional, AsyncGenerator
+from unittest.mock import Mock, AsyncMock
+
 import pytest
 import pytest_asyncio
-from unittest.mock import Mock, AsyncMock
+from textual._context import active_app
 from textual.app import App
 from textual.widgets import Input, TextArea
-from textual._context import active_app
+
 from src.ui.widgets.meeting_form import MeetingForm
-from typing import Any, Optional, AsyncGenerator
-import asyncio
 
 
 @pytest.fixture
