@@ -89,6 +89,7 @@ class AppState:
         state = await self.get_state()
         return (
             state.recording_state == RecordingState.STOPPED
+            or state.recording_state == RecordingState.PAUSED
             and not state.is_processing
             and not state.is_summarizing
         )

@@ -10,44 +10,21 @@ class MarkdownRenderer:
         try:
             md_parts = [
                 f"# {meeting.title}",
+                f"📅 {meeting.start_time.strftime('%Y-%m-%d %H:%M')} · ⏱️ {meeting.duration or 'Ongoing'}",
                 "",
-                "---",
-                "## 👨‍👩‍👦 Attendees",
+                "## 🏷️ Tags",
+                f"{', '.join(meeting.tags) if meeting.tags else '*No tags*'}",
+                "",
+                "## 👥 Attendees",
                 f"{', '.join(meeting.participants)}",
                 "",
-                "---",
-                "## 🎯 Goals",
-                "1. *No goals set*",
-                "",
-                "## 📝 Discussion Notes",
-                "- " + "\n- ".join(meeting.content)
-                if meeting.content
-                else "- *No notes taken*",
-                "",
-                "## 💠 Action Items",
-                "- [ ] *No action items set*",
-                "",
-                "---",
-                "",
-                "## Meeting Details",
-                f"- Date: {meeting.start_time.strftime('%Y-%m-%d %H:%M')}",
-                f"- Duration: {meeting.duration}"
-                if meeting.duration
-                else "- Duration: Ongoing",
-                f"- Tags: {', '.join(meeting.tags)}",
-                "",
-                "## Summary",
                 meeting.summary if meeting.summary else "*No summary available*",
                 "",
-                "## Transcript",
-                "```",
-                meeting.raw_text if meeting.raw_text else "*No transcript available*",
-                "```",
+                "## 📜 Transcript",
                 "",
-                "## Metadata",
-                *[f"- {key}: {value}" for key, value in meeting.metadata.items()],
+                meeting.raw_text if meeting.raw_text else "*No transcript available*",
+                "",
             ]
-
             return "\n".join(md_parts)
         except Exception as e:
             return f"Error rendering markdown: {str(e)}"

@@ -28,7 +28,7 @@ user:
 # Audio capture settings
 audio:
   enabled: true # Disabled by default
-  format: 32 # paFloat32
+  format: 1 # paFloat32
   channels: 1
   rate: 16000
   chunk: 1024

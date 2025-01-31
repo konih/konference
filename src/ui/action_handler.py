@@ -83,6 +83,8 @@ class ActionHandler:
                 "content": meeting.raw_text,
             }
 
+            self.logger.debug(f"Meeting data: {meeting_data}")
+
             summary = await self.app.openai_service.generate_summary(meeting_data)
             if summary:
                 meeting.summary = summary

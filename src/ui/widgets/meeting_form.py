@@ -136,13 +136,13 @@ class MeetingForm(Static):
         """Handle form mounting."""
         self.focus()  # Focus the form when mounted
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
         if event.button.id == "save":
             result = self.collect_form_data()
-            await self.post_message(FormResult(result))
+            self.post_message(FormResult(result))
         elif event.button.id == "cancel":
-            await self.post_message(FormResult(None))
+            self.post_message(FormResult(None))
 
     def collect_form_data(self) -> Tuple[str, List[str], List[str]]:
         """Collect and validate form data."""

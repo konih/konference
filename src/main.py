@@ -45,40 +45,6 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def create_sample_meeting(app: TranscriberUI) -> None:
-    """Create a sample meeting with test content for development."""
-    meeting = app.meeting_store.create_meeting(
-        title="Team Standup",
-        participants=["Alice", "Bob", "Charlie"],
-        tags=["standup", "development"],
-    )
-
-    # Add sample dialogue
-    sample_content = [
-        "Alice: Good morning everyone! Let's go through our updates.",
-        "Bob: I've completed the authentication module yesterday. All tests are passing.",
-        "Charlie: Great work Bob! I'm still working on the database optimization task.",
-        "Alice: Any blockers we should discuss?",
-        "Bob: Actually yes, I need some clarification on the new API requirements.",
-        "Charlie: I can help with that. Let's schedule a quick call after this.",
-        "Alice: Perfect. I'll update the sprint board with our progress.",
-        "Bob: Also, don't forget we have the client demo tomorrow at 2 PM.",
-        "Charlie: I'll prepare the presentation slides today.",
-        "Alice: Excellent! Let's wrap up then. Great progress everyone!",
-    ]
-
-    # Add each line with a timestamp
-    from datetime import datetime, timedelta
-
-    base_time = datetime.now() - timedelta(minutes=30)
-
-    for i, line in enumerate(sample_content):
-        timestamp = base_time + timedelta(minutes=i * 2)
-        app.meeting_store.add_content(f"[{timestamp.strftime('%H:%M:%S')}] {line}")
-
-    meeting.save()
-
-
 def main() -> int:
     # Load environment variables
     load_dotenv()
@@ -98,11 +64,10 @@ def main() -> int:
         user_settings = config.get_user_settings()
 
         # Create and run the UI with default participant
-        app = TranscriberUI(default_participant=user_settings["default_participant"])
-
-        # Create sample meeting for testing if configured
-        if user_settings["create_default_meeting"]:
-            create_sample_meeting(app)
+        app = TranscriberUI(
+            default_participant=user_settings["default_participant"],
+            create_sample=user_settings["create_default_meeting"],
+        )
 
         app.run()
 

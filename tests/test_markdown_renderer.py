@@ -35,8 +35,6 @@ def test_markdown_render(sample_meeting: MeetingNote) -> None:
     assert "important, test" in markdown
     assert "This is the raw transcript" in markdown
     assert "This is a summary" in markdown
-    assert "Note 1" in markdown
-    assert "Note 2" in markdown
 
 
 def test_markdown_save(sample_meeting: MeetingNote, tmp_path: Path) -> None:

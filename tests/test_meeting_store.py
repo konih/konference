@@ -135,3 +135,37 @@ def test_add_content_without_meeting(meeting_store: MeetingStore) -> None:
     # Should not raise an error, just log a warning
     meeting_store.add_content("Test content")
     assert meeting_store.current_meeting is None
+
+
+def test_create_sample_meeting(tmp_path: Path) -> None:
+    """Test creating a sample meeting during initialization."""
+    # Create store with sample meeting
+    store = MeetingStore(storage_dir=str(tmp_path / "meetings"), create_sample=True)
+
+    # Verify the current meeting is set
+    assert store.current_meeting is not None
+    assert store.current_meeting.title == "Team Standup"
+    assert store.current_meeting.participants == ["Alice", "Bob", "Charlie"]
+    assert store.current_meeting.tags == ["standup", "development"]
+
+    # Verify content was properly set
+    assert len(store.current_meeting.content) == 10  # 10 sample messages
+    assert (
+        store.current_meeting.content[0]
+        == "Alice: Good morning everyone! Let's go through our updates."
+    )
+
+    # Verify raw text was properly joined
+    assert "\n" in store.current_meeting.raw_text
+    assert store.current_meeting.raw_text.startswith("Alice: Good morning")
+    assert store.current_meeting.raw_text.endswith("Great progress everyone!")
+
+    # Verify the meeting was saved to disk
+    assert store.current_meeting.file_path is not None
+    assert Path(store.current_meeting.file_path).exists()
+
+    # Create store without sample meeting
+    store_no_sample = MeetingStore(
+        storage_dir=str(tmp_path / "meetings2"), create_sample=False
+    )
+    assert store_no_sample.current_meeting is None

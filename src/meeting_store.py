@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -10,7 +10,10 @@ class MeetingStore:
     """Manages storage and retrieval of meeting notes."""
 
     def __init__(
-        self, storage_dir: str = "meetings", default_participant: Optional[str] = None
+        self,
+        storage_dir: str = "meetings",
+        default_participant: Optional[str] = None,
+        create_sample: bool = False,
     ) -> None:
         self.storage_dir = Path(storage_dir)
         self.storage_dir.mkdir(exist_ok=True)
@@ -19,11 +22,42 @@ class MeetingStore:
         self.logger = logging.getLogger(__name__)
         self.default_participant = default_participant
 
+        if create_sample:
+            self._create_sample_meeting()
+
+    def _create_sample_meeting(self) -> None:
+        """Create a sample meeting with test content."""
+        sample_content = [
+            "Alice: Good morning everyone! Let's go through our updates.",
+            "Bob: I've completed the authentication module yesterday. All tests are passing.",
+            "Charlie: Great work Bob! I'm still working on the database optimization task.",
+            "Alice: Any blockers we should discuss?",
+            "Bob: Actually yes, I need some clarification on the new API requirements.",
+            "Charlie: I can help with that. Let's schedule a quick call after this.",
+            "Alice: Perfect. I'll update the sprint board with our progress.",
+            "Bob: Also, don't forget we have the client demo tomorrow at 2 PM.",
+            "Charlie: I'll prepare the presentation slides today.",
+            "Alice: Excellent! Let's wrap up then. Great progress everyone!",
+        ]
+
+        meeting = MeetingNote(
+            title="Team Standup",
+            participants=["Alice", "Bob", "Charlie"],
+            tags=["standup", "development"],
+            content=sample_content,
+            raw_text="\n".join(sample_content),
+            start_time=datetime.now() - timedelta(minutes=30),
+        )
+
+        self.current_meeting = meeting
+        self.save_meeting(meeting)
+
     def create_meeting(
         self,
         title: str = "Untitled Meeting",
         participants: Optional[List[str]] = None,
         tags: Optional[List[str]] = None,
+        content: Optional[List[str]] = None,
     ) -> MeetingNote:
         """Create a new meeting and set it as current."""
         # Add default participant if provided and not in participants
@@ -40,6 +74,10 @@ class MeetingStore:
             participants=meeting_participants,  # Use the processed list
             tags=tags or [],  # Ensure tags is a list
             start_time=datetime.now(),
+            content=content or [],  # Initialize content list
+            raw_text=""
+            if content is None
+            else "\n".join(content),  # Initialize raw_text
         )
 
         # Set as current meeting

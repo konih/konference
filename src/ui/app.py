@@ -218,13 +218,17 @@ class TranscriberUI(App):
         Binding("m", "summarize", "Summarize", show=True),
     ]
 
-    def __init__(self, default_participant: Optional[str] = None):
+    def __init__(
+        self, default_participant: Optional[str] = None, create_sample: bool = False
+    ):
         super().__init__()
         # Initialize config first
         self.config = Config()
 
         # Initialize core components
-        self.meeting_store = MeetingStore(default_participant=default_participant)
+        self.meeting_store = MeetingStore(
+            default_participant=default_participant, create_sample=create_sample
+        )
         self.logger = AppLogger()
         self.transcriber = SpeechTranscriber(self.config)
         self.action_handler = ActionHandler(self)
@@ -240,24 +244,6 @@ class TranscriberUI(App):
         self.last_minute: Optional[str] = None
 
         # Initialize audio capture with config
-        audio_config = self.config.config.get(
-            "audio",
-            {
-                "enabled": False,
-                "format": pyaudio.paFloat32,
-                "channels": 1,
-                "rate": 16000,
-                "chunk": 1024,
-            },
-        )
-        self.audio_capture = AudioCapture(
-            format=audio_config["format"],
-            channels=audio_config["channels"],
-            rate=audio_config["rate"],
-            chunk=audio_config["chunk"],
-            enabled=audio_config["enabled"],
-            logger=self.logger.logger,
-        )
 
         # Add state manager
         self.state = AppState()
@@ -286,21 +272,26 @@ class TranscriberUI(App):
             # meter = self.query_one("#audio-meter", AudioMeter)  # Remove this
             # Instead, just get the existing widget
             meter = self.query_one("#audio-meter", AudioMeter)
-            self.audio_capture = AudioCapture(
-                format=pyaudio.paFloat32,
-                rate=44100,
-                chunk=1024,
-                level_callback=lambda data: meter.update_level(data, format_width=4),
-                logger=self.logger.logger,
+            audio_config = self.config.config.get(
+                "audio",
+                {
+                    "enabled": True,
+                    "format": pyaudio.paFloat32,
+                    "channels": 1,
+                    "rate": 16000,
+                    "chunk": 1024,
+                },
             )
-
-            # Create default meeting if configured
-            user_settings = self.config.get_user_settings()
-            if user_settings["create_default_meeting"]:
-                self.meeting_store.create_meeting(
-                    title="Untitled Meeting",
-                    participants=[user_settings["default_participant"]],
-                )
+            
+            self.audio_capture = AudioCapture(
+                format=audio_config["format"],
+                channels=audio_config["channels"],
+                rate=audio_config["rate"],
+                chunk=audio_config["chunk"],
+                enabled=audio_config["enabled"],
+                logger=self.logger.logger,
+                level_callback=lambda data: meter.update_level(data, format_width=4),
+            )
 
             # Update UI to show initial meeting content
             self._update_recording_ui()

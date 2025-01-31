@@ -10,6 +10,8 @@ from textual.widgets import Button
 from src.logger import AppLogger
 from src.ui.app import TranscriberUI
 
+import pyaudio
+
 
 @pytest_asyncio.fixture
 async def mock_components() -> dict:
@@ -33,6 +35,13 @@ async def mock_components() -> dict:
 def create_mock_config() -> Mock:
     """Create a mock config component."""
     mock_config = Mock()
+    mock_config.config.get.return_value = {
+        "enabled": True,
+        "format": pyaudio.paFloat32,
+        "channels": 1,
+        "rate": 16000,
+        "chunk": 1024,
+    }
     mock_config.get_logging_settings.return_value = {
         "level": "INFO",
         "file_logging_enabled": False,

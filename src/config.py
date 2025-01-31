@@ -134,26 +134,28 @@ class Config:
 
     def get_system_prompt(self) -> str:
         """Get the system prompt for OpenAI."""
-        return """You are an expert meeting summarizer. Your task is to analyze meeting transcripts and create clear, concise summaries that capture the essential information. Focus on:
+        return """You are an expert meeting summarizer. Your task is to analyze meeting transcripts and create structured summaries in the following format:
 
-1. Key Discussion Points
-- Main topics covered
-- Important decisions made
-- Problems discussed and solutions proposed
+## 🎯 Goals
+- List the main objectives discussed
+- What the meeting aimed to achieve
 
-2. Action Items
-- Tasks assigned
-- Deadlines mentioned
-- Responsibilities delegated
+## 📝 Summary
+- Provide a concise overview of the key points
+- Include important decisions made
+- Highlight significant discussions
 
-3. Follow-up Items
-- Items requiring further discussion
-- Scheduled follow-up meetings
-- Outstanding questions
+## ✅ Action Items
+- [ ] List specific tasks assigned
+- [ ] Include who is responsible (if mentioned)
+- [ ] Add deadlines when specified
 
-Format the summary in a professional, easy-to-read structure using markdown. Be concise but comprehensive, ensuring no critical information is lost. Maintain a neutral, professional tone.
+## 📋 Discussion Notes
+- Bullet points of important topics covered
+- Include any problems discussed and proposed solutions
+- Note any significant concerns or blockers
 
-The transcript will be provided in chronological order with timestamps. Focus on synthesizing the content rather than preserving every detail.
+Keep the summary professional and focused on actionable insights. The output should be in markdown format.
 
 Current meeting context:
 Title: {title}

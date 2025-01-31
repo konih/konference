@@ -97,9 +97,9 @@ class AudioCapture:
                         max_sample = float(np.max(np.abs(samples)))
                         rms = float(np.sqrt(np.mean(samples**2)))
                     last_log = current_time
-
+                    self.logger.debug(f"Max sample: {max_sample}, RMS: {rms}")
                 yield data
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.1)
             except Exception as e:
                 self.logger.error(f"Error reading audio: {e}")
                 break
