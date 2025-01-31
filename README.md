@@ -21,6 +21,7 @@ An automated meeting minutes generator that uses Azure Speech Services to transc
 
 - Python 3.11 or higher
 - Azure Speech Services subscription
+- OpenAI API key (for meeting summaries)
 - Linux or macOS (Windows support coming soon)
 - Task (taskfile) installed
 - PortAudio (for audio capture)
@@ -38,10 +39,11 @@ cd meeting-minutes-transcriber
 task full-setup
 ```
 
-3. Update your Azure credentials in the `.env` file:
+3. Update your credentials in the `.env` file:
 ```env
 AZURE_SPEECH_KEY=your_key_here
 AZURE_SPEECH_REGION=your_region_here
+OPENAI_API_KEY=your_openai_key_here
 ```
 
 4. Start Konference:
@@ -158,3 +160,26 @@ MIT
 - Textual TUI Framework
 - Rich Text Formatting
 - PyAudio
+
+## AI-Powered Features
+
+### Meeting Summaries
+Konference uses OpenAI's GPT-4 to generate intelligent meeting summaries that include:
+- Key discussion points
+- Action items and decisions
+- Meeting context and participant contributions
+- Important themes and topics
+
+To use the AI features:
+1. Ensure your OpenAI API key is set in the `.env` file
+2. During or after a meeting, press `M` or click the "📝 Summarize" button
+3. The AI will analyze the transcript and generate a comprehensive summary
+
+### Configuration
+You can customize the AI behavior in `config.yaml`:
+```yaml
+openai:
+  model: 'gpt-4'          # Choose OpenAI model
+  temperature: 0.7        # Control creativity (0.0-1.0)
+  max_tokens: 1000        # Maximum summary length
+```
